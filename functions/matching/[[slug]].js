@@ -3,7 +3,7 @@ export async function onRequest(context) {
   const parts = url.pathname.split('/').filter(Boolean);
   // parts = ['matching', 'seconda-guerra-mondiale-mplaai6g']
   const slug = parts[1] || '';
-  const assetUrl = new URL('/matching/index.html', url.origin);
+  const assetUrl = new URL('/matching/_index.html', url.origin);
   const response = await context.env.ASSETS.fetch(assetUrl.toString());
   const html = await response.text();
   const injected = html.replace(
