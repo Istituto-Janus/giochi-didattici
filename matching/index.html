@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matching Game — Istituto Janus</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:1rem}
+.header{text-align:center;margin-bottom:1.5rem;padding-top:1rem}
+h1{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.subtitle{font-size:13px;color:#666}
+.round-info{font-size:13px;color:#666;margin-bottom:1rem;text-align:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:600px;margin-bottom:1rem}
+.card{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer;font-size:14px;color:#333;transition:border-color 0.15s,background 0.15s;min-height:64px;display:flex;align-items:center;justify-content:center;line-height:1.3}
+.card:hover{border-color:#aaa}
+.card.selected{border-color:#3b82f6;background:#eff6ff;color:#1d4ed8}
+.card.correct{border-color:#16a34a;background:#f0fdf4;color:#15803d;cursor:default}
+.card.wrong{border-color:#dc2626;background:#fef2f2;color:#b91c1c;animation:shake 0.3s}
+.card.disabled{opacity:0.4;cursor:default}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.score-bar{width:100%;max-width:600px;background:#e5e7eb;border-radius:999px;height:8px;margin-bottom:0.5rem}
+.score-fill{height:8px;border-radius:999px;background:#3b82f6;transition:width 0.3s}
+.score-text{font-size:12px;color:#666;margin-bottom:1rem}
+.btn-next{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;cursor:pointer;display:none;margin-bottom:1rem}
+.btn-next:hover{background:#2563eb}
+.result-screen{display:none;text-align:center;padding:2rem;max-width:400px}
+.result-screen h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.percent{font-size:48px;font-weight:700;margin:1rem 0}
+.percent.high{color:#16a34a}
+.percent.mid{color:#d97706}
+.percent.low{color:#dc2626}
+.result-detail{font-size:13px;color:#666;margin-bottom:1.5rem}
+.btn-restart{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer}
+.feedback-msg{font-size:13px;min-height:20px;margin-bottom:0.5rem;text-align:center;color:#666}
+.loading{text-align:center;padding:3rem;color:#666;font-size:15px}
+.error{text-align:center;padding:3rem;color:#dc2626;font-size:15px}
+.logo{font-size:12px;color:#aaa;margin-top:2rem}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1 id="titolo">Caricamento...</h1>
+  <p class="subtitle">Abbina ogni elemento alla sua coppia corretta</p>
+</div>
+<div id="loading" class="loading">Caricamento quiz in corso...</div>
+<div id="error" class="error" style="display:none">Quiz non trovato. Verifica il link.</div>
+<div id="game" style="display:none;width:100%;max-width:600px;display:none;flex-direction:column;align-items:center">
+  <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+  <p class="score-text" id="score-text">Coppie corrette al primo tentativo: 0 / 20</p>
+  <p class="round-info" id="round-info">Round 1 di 4</p>
+  <p class="feedback-msg" id="feedback-msg"></p>
+  <div class="grid" id="grid"></div>
+  <button class="btn-next" id="btn-next" onclick="nextRound()">Round successivo →</button>
+  <div class="result-screen" id="result-screen">
+    <h2>Completato!</h2>
+    <div class="percent" id="result-pct"></div>
+    <p class="result-detail" id="result-detail"></p>
+    <button class="btn-restart" onclick="restart()">Ricomincia</button>
+  </div>
+</div>
+<p class="logo">Istituto Janus — Giochi Didattici</p>
+
+<script>
+const SUPABASE_URL = 'https://tageubqfxkshigrriiyw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44';
+
+let COPPIE = [];
+let round = 0;
+const ROUND_SIZE = 5;
+const ROUNDS = 4;
+let selA = null, selB = null;
+let corrette1tentativo = 0;
+let colA = [], colB = [];
+let locked = false;
+
+function getSlug() {
+  const parts = window.location.pathname.split('/');
+  return parts[parts.length - 1] || parts[parts.length - 2];
+}
+
+async function caricaQuiz() {
+  const slug = getSlug();
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/MatchingGame?slug=eq.${slug}&select=titolo,coppie`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = await res.json();
+    if (!data || data.length === 0) throw new Error('not found');
+    COPPIE = data[0].coppie;
+    document.getElementById('titolo').textContent = data[0].titolo;
+    document.title = data[0].titolo + ' — Matching Game';
+    document.getElementById('loading').style.display = 'none';
+    const game = document.getElementById('game');
+    game.style.display = 'flex';
+    startRound();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+  }
+}
+
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr; }
+
+function startRound(){
+  selA=null;selB=null;locked=false;
+  const start=round*ROUND_SIZE;
+  const slice=COPPIE.slice(start,start+ROUND_SIZE);
+  colA=shuffle([...slice.map((c,i)=>({text:c.a,idx:i,col:'a'}))]);
+  colB=shuffle([...slice.map((c,i)=>({text:c.b,idx:i,col:'b'}))]);
+  document.getElementById('round-info').textContent='Round '+(round+1)+' di '+ROUNDS+' — 5 coppie';
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('feedback-msg').textContent='';
+  renderGrid();
+}
+
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  const interleaved=[];
+  for(let i=0;i<5;i++){interleaved.push(colA[i]);interleaved.push(colB[i]);}
+  interleaved.forEach(item=>{
+    const div=document.createElement('div');
+    div.className='card';
+    div.textContent=item.text;
+    div.dataset.idx=item.idx;
+    div.dataset.col=item.col;
+    div.onclick=()=>selectCard(div,item);
+    grid.appendChild(div);
+  });
+}
+
+function selectCard(div,item){
+  if(locked)return;
+  if(div.classList.contains('correct')||div.classList.contains('disabled'))return;
+  if(item.col==='a'){
+    document.querySelectorAll('.card[data-col="a"]').forEach(c=>c.classList.remove('selected'));
+    selA={div,item};div.classList.add('selected');
+  } else {
+    document.querySelectorAll('.card[data-col="b"]').forEach(c=>c.classList.remove('selected'));
+    selB={div,item};div.classList.add('selected');
+  }
+  if(selA&&selB) checkPair();
+}
+
+function checkPair(){
+  locked=true;
+  const isFirst=!selA.div.dataset.tried;
+  if(selA.item.idx===selB.item.idx){
+    selA.div.classList.remove('selected');selA.div.classList.add('correct','disabled');
+    selB.div.classList.remove('selected');selB.div.classList.add('correct','disabled');
+    if(isFirst){corrette1tentativo++;}
+    document.getElementById('feedback-msg').textContent='✓ Corretto!';
+    updateScore();
+    const remaining=document.querySelectorAll('.card:not(.correct)').length;
+    if(remaining===0){
+      setTimeout(()=>{
+        if(round+1>=ROUNDS){showResult();}
+        else{document.getElementById('btn-next').style.display='inline-block';}
+      },600);
+    }
+    selA=null;selB=null;locked=false;
+  } else {
+    selA.div.classList.add('wrong');selB.div.classList.add('wrong');
+    selA.div.dataset.tried='1';
+    document.getElementById('feedback-msg').textContent='✗ Non corretta, riprova.';
+    setTimeout(()=>{
+      selA.div.classList.remove('selected','wrong');
+      selB.div.classList.remove('selected','wrong');
+      selA=null;selB=null;locked=false;
+    },800);
+  }
+}
+
+function updateScore(){
+  const pct=Math.round((corrette1tentativo/20)*100);
+  document.getElementById('score-fill').style.width=pct+'%';
+  document.getElementById('score-text').textContent='Coppie corrette al primo tentativo: '+corrette1tentativo+' / 20';
+}
+
+function nextRound(){round++;startRound();}
+
+function showResult(){
+  document.getElementById('grid').style.display='none';
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('round-info').style.display='none';
+  document.getElementById('feedback-msg').style.display='none';
+  const pct=Math.round((corrette1tentativo/20)*100);
+  const rs=document.getElementById('result-screen');
+  rs.style.display='block';
+  const p=document.getElementById('result-pct');
+  p.textContent=pct+'%';
+  p.className='percent '+(pct>=80?'high':pct>=50?'mid':'low');
+  document.getElementById('result-detail').textContent='Hai indovinato '+corrette1tentativo+' coppie su 20 al primo tentativo.';
+}
+
+function restart(){
+  corrette1tentativo=0;round=0;updateScore();
+  document.getElementById('result-screen').style.display='none';
+  document.getElementById('grid').style.display='grid';
+  document.getElementById('round-info').style.display='block';
+  document.getElementById('feedback-msg').style.display='block';
+  startRound();
+}
+
+caricaQuiz();
+</script>
+</body>
+</html>
