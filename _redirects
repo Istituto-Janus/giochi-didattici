@@ -1,1 +1,1 @@
-/matching/:slug  /matching/index.html  200
+/matching/:slug  /matching/index.html?slug=:slug  200
