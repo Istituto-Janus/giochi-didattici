@@ -75,8 +75,8 @@ let colA = [], colB = [];
 let locked = false;
 
 function getSlug() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('slug');
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts[parts.length - 1];
 }
 
 async function caricaQuiz() {
