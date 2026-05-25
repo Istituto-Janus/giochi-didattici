@@ -228,7 +228,9 @@ async function pubblicaSuSupabase() {
     });
     if (!res.ok) throw new Error(await res.text());
     const link = 'https://giochi.istitutojanus.it/matching/' + slug;
-    document.getElementById('pub-link').textContent = link;
+    const el = document.getElementById('pub-link');
+el.textContent = link;
+el.href = link;
     document.getElementById('link-result').style.display = 'block';
     status.textContent = '✓ Pubblicato con successo!';
     status.className = 'status ok';
