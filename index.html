@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matching Game — Tool Docente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;padding:1.5rem}
+h1{font-size:20px;font-weight:600;margin-bottom:1.5rem;color:#1a1a1a}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+label{font-size:13px;color:#666;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;font-size:14px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:1rem;font-family:inherit}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tab-row{display:flex;gap:8px;margin-bottom:1rem}
+.tab{padding:6px 16px;border-radius:8px;border:1px solid #ddd;background:transparent;cursor:pointer;font-size:13px;color:#666}
+.tab.active{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.drop-zone{border:2px dashed #ddd;border-radius:8px;padding:2rem;text-align:center;cursor:pointer;color:#666;font-size:13px;margin-bottom:1rem}
+.drop-zone:hover{background:#f9f9f9}
+.btn-primary{width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-primary:hover{background:#2563eb}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem}
+.btn-sec{padding:10px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-sec:hover{background:#f9f9f9}
+.status{font-size:13px;color:#666;margin-top:8px;text-align:center;min-height:20px}
+.status.ok{color:#16a34a}
+.status.err{color:#dc2626}
+.pairs-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:1rem}
+.pair-a{background:#eff6ff;border-radius:6px;padding:6px 10px;font-size:12px}
+.pair-b{background:#f9fafb;border-radius:6px;padding:6px 10px;font-size:12px;color:#666}
+.link-box{background:#f0fdf4;border-radius:8px;padding:10px 14px;font-size:12px;color:#15803d;word-break:break-all;margin-top:8px;display:flex;align-items:center;gap:8px}
+#pdf-input{display:none}
+</style>
+</head>
+<body>
+<h1>🃏 Matching Game — Tool Docente</h1>
+
+<div class="card">
+  <label>Contenuto del quiz</label>
+  <div class="tab-row">
+    <button class="tab active" onclick="switchTab('text',this)">Testo libero</button>
+    <button class="tab" onclick="switchTab('pdf',this)">Carica PDF</button>
+  </div>
+  <div id="tab-text">
+    <textarea id="argomento" placeholder="Inserisci l'argomento o incolla il testo..."></textarea>
+  </div>
+  <div id="tab-pdf" style="display:none">
+    <div class="drop-zone" onclick="document.getElementById('pdf-input').click()">
+      📄 Clicca o trascina un PDF qui
+      <div id="pdf-label" style="margin-top:8px;font-weight:500"></div>
+    </div>
+    <input type="file" id="pdf-input" accept=".pdf">
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Tipo di coppie</label>
+      <select id="tipo">
+        <option value="termine_definizione">Termine → Definizione</option>
+        <option value="domanda_risposta">Domanda → Risposta</option>
+        <option value="causa_effetto">Causa → Effetto</option>
+        <option value="concetto_esempio">Concetto → Esempio</option>
+        <option value="personaggio_caratteristica">Personaggio → Caratteristica</option>
+      </select>
+    </div>
+    <div>
+      <label>Lingua del quiz</label>
+      <select id="lingua">
+        <option value="italiano">🇮🇹 Italiano</option>
+        <option value="inglese">🇬🇧 Inglese</option>
+        <option value="francese">🇫🇷 Francese</option>
+        <option value="spagnolo">🇪🇸 Spagnolo</option>
+        <option value="tedesco">🇩🇪 Tedesco</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-primary" id="genera-btn" onclick="generaCoppie()">✨ Genera 20 coppie con AI</button>
+  <p class="status" id="status-genera"></p>
+</div>
+
+<div class="card" id="preview-card" style="display:none">
+  <strong style="font-size:13px">Anteprima coppie generate</strong>
+  <div class="pairs-grid" id="pairs-preview"></div>
+  <div class="btn-row">
+    <button class="btn-sec" onclick="scaricaHTML()">⬇️ Scarica HTML</button>
+    <button class="btn-sec" onclick="pubblicaSuSupabase()">☁️ Pubblica su Supabase</button>
+  </div>
+  <p class="status" id="status-pub"></p>
+  <div id="link-result" style="display:none">
+    <div class="link-box">
+      <span id="pub-link"></span>
+      <button onclick="copiaLink()" style="background:none;border:none;cursor:pointer;font-size:16px">📋</button>
+    </div>
+    <p style="font-size:11px;color:#999;margin-top:6px">Incolla questo link in Moodle come risorsa URL</p>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://tageubqfxkshigrriiyw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44';
+
+let coppieGenerate = [];
+let titoloQuiz = '';
+let pdfBase64 = null;
+let activeTab = 'text';
+
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-text').style.display = tab === 'text' ? 'block' : 'none';
+  document.getElementById('tab-pdf').style.display = tab === 'pdf' ? 'block' : 'none';
+}
+
+document.getElementById('pdf-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('pdf-label').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (ev) => { pdfBase64 = ev.target.result.split(',')[1]; };
+  reader.readAsDataURL(file);
+});
+
+async function generaCoppie() {
+  const tipo = document.getElementById('tipo').value;
+  const lingua = document.getElementById('lingua').value;
+  const argomento = document.getElementById('argomento').value.trim();
+  const btn = document.getElementById('genera-btn');
+  const status = document.getElementById('status-genera');
+
+  if (activeTab === 'text' && !argomento) { status.textContent = 'Inserisci un argomento.'; status.className = 'status err'; return; }
+  if (activeTab === 'pdf' && !pdfBase64) { status.textContent = 'Carica prima un PDF.'; status.className = 'status err'; return; }
+
+  btn.disabled = true;
+  status.textContent = 'Generazione in corso...';
+  status.className = 'status';
+
+  const tipiLabel = {
+    termine_definizione: 'termine → definizione',
+    domanda_risposta: 'domanda → risposta',
+    causa_effetto: 'causa → effetto',
+    concetto_esempio: 'concetto → esempio',
+    personaggio_caratteristica: 'personaggio → caratteristica'
+  };
+
+  const systemPrompt = `Sei un esperto di didattica. Genera esattamente 20 coppie per un matching game educativo. Tipo: ${tipiLabel[tipo]}. Lingua: ${lingua}. Rispondi SOLO con JSON valido senza markdown. Formato: {"titolo":"argomento max 5 parole","coppie":[{"a":"...","b":"..."}]}`;
+
+  const userContent = activeTab === 'pdf' ? [
+    { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+    { type: 'text', text: 'Genera le 20 coppie basandoti su questo documento.' }
+  ] : [{ type: 'text', text: `Argomento: ${argomento}` }];
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    coppieGenerate = parsed.coppie;
+    titoloQuiz = parsed.titolo || argomento.slice(0, 50);
+    mostraAnteprima();
+    status.textContent = '✓ ' + coppieGenerate.length + ' coppie generate.';
+    status.className = 'status ok';
+  } catch(e) {
+    status.textContent = 'Errore nella generazione. Riprova.';
+    status.className = 'status err';
+  }
+  btn.disabled = false;
+}
+
+function mostraAnteprima() {
+  const grid = document.getElementById('pairs-preview');
+  grid.innerHTML = '';
+  coppieGenerate.slice(0, 10).forEach(c => {
+    const a = document.createElement('div'); a.className = 'pair-a'; a.textContent = c.a;
+    const b = document.createElement('div'); b.className = 'pair-b'; b.textContent = c.b;
+    grid.appendChild(a); grid.appendChild(b);
+  });
+  document.getElementById('preview-card').style.display = 'block';
+  document.getElementById('link-result').style.display = 'none';
+}
+
+function generaSlug() {
+  return titoloQuiz.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '-' + Date.now().toString(36);
+}
+
+function buildGameHTML(titolo, coppieJSON) {
+  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${titolo}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;padding:1rem}.header{text-align:center;margin-bottom:1.5rem;padding-top:1rem}h1{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}.subtitle{font-size:13px;color:#666}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:600px;margin-bottom:1rem}.card{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer;font-size:14px;color:#333;min-height:64px;display:flex;align-items:center;justify-content:center;line-height:1.3}.card.selected{border-color:#3b82f6;background:#eff6ff}.card.correct{border-color:#16a34a;background:#f0fdf4;cursor:default}.card.wrong{border-color:#dc2626;background:#fef2f2;animation:shake .3s}.card.disabled{opacity:.4;cursor:default}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}.score-bar{width:100%;max-width:600px;background:#e5e7eb;border-radius:999px;height:8px;margin-bottom:.5rem}.score-fill{height:8px;border-radius:999px;background:#3b82f6;transition:width .3s}.score-text{font-size:12px;color:#666;margin-bottom:1rem}.round-info{font-size:13px;color:#666;margin-bottom:.5rem}.feedback-msg{font-size:13px;min-height:20px;margin-bottom:.5rem;color:#666}.btn-next{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;cursor:pointer;display:none;margin-bottom:1rem}.result-screen{display:none;text-align:center;padding:2rem}.result-screen h2{font-size:24px;font-weight:700;margin-bottom:8px}.percent{font-size:48px;font-weight:700;margin:1rem 0}.percent.high{color:#16a34a}.percent.mid{color:#d97706}.percent.low{color:#dc2626}.result-detail{font-size:13px;color:#666;margin-bottom:1.5rem}.btn-restart{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer}.logo{font-size:12px;color:#aaa;margin-top:2rem}</style></head><body><div class="header"><h1>${titolo}</h1><p class="subtitle">Abbina ogni elemento alla sua coppia corretta</p></div><div class="score-bar"><div class="score-fill" id="sf" style="width:0%"></div></div><p class="score-text" id="st">Coppie corrette al primo tentativo: 0 / 20</p><p class="round-info" id="ri">Round 1 di 4</p><p class="feedback-msg" id="fm"></p><div class="grid" id="grid"></div><button class="btn-next" id="bn" onclick="nextRound()">Round successivo →</button><div class="result-screen" id="rs"><h2>Completato!</h2><div class="percent" id="rp"></div><p class="result-detail" id="rd"></p><button class="btn-restart" onclick="restart()">Ricomincia</button></div><p class="logo">Istituto Janus — Giochi Didattici</p><script>const C=${coppieJSON};let round=0,selA=null,selB=null,corr=0,colA=[],colB=[],locked=false;function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}function startRound(){selA=null;selB=null;locked=false;const s=round*5,sl=C.slice(s,s+5);colA=shuffle(sl.map((c,i)=>({text:c.a,idx:i,col:'a'})));colB=shuffle(sl.map((c,i)=>({text:c.b,idx:i,col:'b'})));document.getElementById('ri').textContent='Round '+(round+1)+' di 4 — 5 coppie';document.getElementById('bn').style.display='none';document.getElementById('fm').textContent='';renderGrid()}function renderGrid(){const g=document.getElementById('grid');g.innerHTML='';const int=[];for(let i=0;i<5;i++){int.push(colA[i]);int.push(colB[i])}int.forEach(item=>{const d=document.createElement('div');d.className='card';d.textContent=item.text;d.dataset.idx=item.idx;d.dataset.col=item.col;d.onclick=()=>sel(d,item);g.appendChild(d)})}function sel(div,item){if(locked)return;if(div.classList.contains('correct')||div.classList.contains('disabled'))return;if(item.col==='a'){document.querySelectorAll('.card[data-col="a"]').forEach(c=>c.classList.remove('selected'));selA={div,item};div.classList.add('selected')}else{document.querySelectorAll('.card[data-col="b"]').forEach(c=>c.classList.remove('selected'));selB={div,item};div.classList.add('selected')}if(selA&&selB)check()}function check(){locked=true;const first=!selA.div.dataset.tried;if(selA.item.idx===selB.item.idx){selA.div.classList.remove('selected');selA.div.classList.add('correct','disabled');selB.div.classList.remove('selected');selB.div.classList.add('correct','disabled');if(first)corr++;document.getElementById('fm').textContent='✓ Corretto!';const pct=Math.round(corr/20*100);document.getElementById('sf').style.width=pct+'%';document.getElementById('st').textContent='Coppie corrette al primo tentativo: '+corr+' / 20';const rem=document.querySelectorAll('.card:not(.correct)').length;if(rem===0)setTimeout(()=>{if(round+1>=4)showResult();else document.getElementById('bn').style.display='inline-block'},600);selA=null;selB=null;locked=false}else{selA.div.classList.add('wrong');selB.div.classList.add('wrong');selA.div.dataset.tried='1';document.getElementById('fm').textContent='✗ Non corretta, riprova.';setTimeout(()=>{selA.div.classList.remove('selected','wrong');selB.div.classList.remove('selected','wrong');selA=null;selB=null;locked=false},800)}}function nextRound(){round++;startRound()}function showResult(){document.getElementById('grid').style.display='none';document.getElementById('bn').style.display='none';document.getElementById('ri').style.display='none';document.getElementById('fm').style.display='none';const pct=Math.round(corr/20*100);const rs=document.getElementById('rs');rs.style.display='block';const p=document.getElementById('rp');p.textContent=pct+'%';p.className='percent '+(pct>=80?'high':pct>=50?'mid':'low');document.getElementById('rd').textContent='Hai indovinato '+corr+' coppie su 20 al primo tentativo.'}function restart(){corr=0;round=0;document.getElementById('sf').style.width='0%';document.getElementById('st').textContent='Coppie corrette al primo tentativo: 0 / 20';document.getElementById('rs').style.display='none';document.getElementById('grid').style.display='grid';document.getElementById('ri').style.display='block';document.getElementById('fm').style.display='block';startRound()}startRound();<\/script></body></html>`;
+}
+
+function scaricaHTML() {
+  if (!coppieGenerate.length) return;
+  const html = buildGameHTML(titoloQuiz, JSON.stringify(coppieGenerate));
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = titoloQuiz.replace(/[^a-z0-9]/gi, '_') + '_matching.html';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+async function pubblicaSuSupabase() {
+  if (!coppieGenerate.length) return;
+  const status = document.getElementById('status-pub');
+  status.textContent = 'Pubblicazione in corso...';
+  status.className = 'status';
+  const slug = generaSlug();
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/MatchingGame', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ titolo: titoloQuiz, coppie: coppieGenerate, slug: slug })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const link = 'https://giochi.istitutojanus.it/matching/' + slug;
+    document.getElementById('pub-link').textContent = link;
+    document.getElementById('link-result').style.display = 'block';
+    status.textContent = '✓ Pubblicato con successo!';
+    status.className = 'status ok';
+  } catch(e) {
+    status.textContent = 'Errore: ' + e.message;
+    status.className = 'status err';
+  }
+}
+
+function copiaLink() {
+  navigator.clipboard.writeText(document.getElementById('pub-link').textContent);
+}
+</script>
+</body>
+</html>
