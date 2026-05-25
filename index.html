@@ -243,6 +243,38 @@ el.href = link;
 function copiaLink() {
   navigator.clipboard.writeText(document.getElementById('pub-link').textContent);
 }
+  async function mostraArchivio() {
+  const list = document.getElementById('archivio-list');
+  list.style.display = 'block';
+  list.innerHTML = '<p style="font-size:13px;color:#666">Caricamento...</p>';
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/MatchingGame?select=titolo,slug,created_at&order=created_at.desc', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const data = await res.json();
+    if (!data.length) { list.innerHTML = '<p style="font-size:13px;color:#666">Nessun quiz pubblicato.</p>'; return; }
+    list.innerHTML = data.map(q => {
+      const link = 'https://giochi.istitutojanus.it/matching/' + q.slug;
+      const data_it = new Date(q.created_at).toLocaleDateString('it-IT');
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <div>
+          <div style="font-size:13px;font-weight:500">${q.titolo}</div>
+          <div style="font-size:11px;color:#999">${data_it}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="${link}" target="_blank" style="font-size:12px;color:#3b82f6">Apri</a>
+          <button onclick="navigator.clipboard.writeText('${link}')" style="background:none;border:none;cursor:pointer;font-size:14px" title="Copia link">📋</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<p style="font-size:13px;color:#dc2626">Errore nel caricamento.</p>';
+  }
+}
 </script>
+  <div class="card" id="archivio-card">
+  <button class="btn-primary" onclick="mostraArchivio()">📚 Mostra quiz pubblicati</button>
+  <div id="archivio-list" style="margin-top:1rem;display:none"></div>
+</div>
 </body>
 </html>
