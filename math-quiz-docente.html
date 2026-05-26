@@ -334,31 +334,26 @@
     document.getElementById("preview").style.display = "none";
 
     try {
-      const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
+     const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
 
-Ogni domanda deve avere:
-- Una domanda chiara e precisa
-- 4 opzioni di risposta (1 corretta + 3 distrattori plausibili ma sbagliati)
-- L'indice (0-based) dell'opzione corretta
-- Uno svolgimento passo-passo che spiega come si arriva alla risposta corretta (massimo 4-5 righe, usa testo semplice senza simboli speciali)
+REGOLE CRITICHE PER IL JSON:
+- Rispondi SOLO con un array JSON valido
+- Zero testo prima o dopo il JSON
+- Zero backtick o markdown
+- Nelle stringhe JSON usa SOLO caratteri ASCII standard
+- NON usare questi simboli nelle stringhe: → ∞ ≤ ≥ ± × ÷ ² ³ √ ∑ ∫ π
+- Al posto di → scrivi: "quindi" o "diventa"
+- Al posto di ∞ scrivi: "infinito"
+- Al posto di ² scrivi: "al quadrato"
+- Al posto di √ scrivi: "radice di"
+- Al posto di π scrivi: "pi greco"
+- NON usare apici o caratteri accentati nelle stringhe JSON
+- Ogni stringa deve essere su una sola riga, senza a capo interni
 
-Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza backtick, senza markdown. Formato esatto:
-[
-  {
-    "domanda": "testo della domanda",
-    "opzioni": ["opzione A", "opzione B", "opzione C", "opzione D"],
-    "corretta": 0,
-    "svolgimento": "Passo 1: ... Passo 2: ... Passo 3: ..."
-  }
-]
+Formato JSON richiesto:
+[{"domanda":"testo","opzioni":["A","B","C","D"],"corretta":0,"svolgimento":"Passo 1: ... Passo 2: ... Passo 3: ..."}]
 
-Assicurati che:
-- Le domande siano adeguate al livello ${livello}
-- I distrattori siano plausibili (errori comuni degli studenti)
-- L'indice "corretta" sia corretto (0, 1, 2 o 3)
-- Lo svolgimento sia chiaro, didattico e spieghi ogni passaggio
-- Usa solo testo semplice nello svolgimento, senza caratteri speciali o simboli matematici complessi
-- Il JSON sia valido e completo con esattamente 10 domande`;
+Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione in italiano semplice, massimo 3-4 passi, usando solo parole e numeri.`;
 
       const aiRes = await fetch(PROXY_URL, {
         method: "POST",
