@@ -314,8 +314,22 @@
       .replace(/\r\n/g, ' ')
       .replace(/\r/g, ' ')
       .replace(/\n/g, ' ')
-      .replace(/\\([^"\\/bfnrtu0-9])/g, '\\\\$1')
       .trim();
+  }
+
+  async function chiamaAI(prompt) {
+    const res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error("Errore nella chiamata AI.");
+    const data = await res.json();
+    return data.content[0].text.trim();
   }
 
   async function genera() {
@@ -327,72 +341,88 @@
 
     const btn = document.getElementById("genera-btn");
     btn.disabled = true;
-    setStatus("loading", "⏳ Generazione domande in corso con AI...");
     document.getElementById("link-box").style.display = "none";
     document.getElementById("preview").style.display = "none";
 
     try {
-      const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
+      // ── CHIAMATA 1: genera domande in JSON puro, zero LaTeX ──
+      setStatus("loading", "⏳ Generazione domande (1/2)...");
 
-Ogni domanda ha questi campi:
-- "domanda": testo della domanda in italiano semplice, senza formule LaTeX
-- "opzioni": array di 4 stringhe in italiano semplice, senza formule LaTeX
-- "corretta": indice 0-based dell'opzione corretta
-- "svolgimento": array di stringhe, una per passo. Ogni passo PUO' contenere LaTeX inline racchiuso tra $ $ (es. "Calcoliamo $\\frac{1}{2} + \\frac{1}{3}$")
+      const prompt1 = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
 
-REGOLE CRITICHE PER IL JSON:
-- Rispondi SOLO con l'array JSON, zero testo prima o dopo, zero backtick
-- "domanda" e "opzioni": solo testo semplice in italiano, zero LaTeX, zero backslash
-- "svolgimento": array di stringhe. Il LaTeX va dentro $ $. I backslash LaTeX vanno raddoppiati: \\frac, \\lim, \\infty, \\cdot, \\sqrt
-- Ogni stringa su una sola riga, zero a capo interni
+REGOLE ASSOLUTE:
+- Rispondi SOLO con un array JSON valido
+- Zero testo prima o dopo, zero backtick, zero markdown
+- Usa SOLO testo semplice in italiano: niente LaTeX, niente backslash, niente simboli speciali
+- Per le frazioni scrivi "a/b", per gli esponenti scrivi "x^2", per la radice scrivi "sqrt(x)"
+- Ogni stringa su una sola riga
 
-Esempio di formato corretto:
-[
-  {
-    "domanda": "Quanto vale il limite di 1/x quando x tende a infinito?",
-    "opzioni": ["0", "1", "infinito", "non esiste"],
-    "corretta": 0,
-    "svolgimento": [
-      "Consideriamo la funzione $f(x) = \\frac{1}{x}$",
-      "Quando $x \\to +\\infty$, il denominatore cresce senza limite",
-      "Quindi $\\lim_{x \\to +\\infty} \\frac{1}{x} = 0$"
-    ]
-  }
-]
+Formato:
+[{"domanda":"testo","opzioni":["A","B","C","D"],"corretta":0}]
 
-Genera esattamente 10 domande in questo formato.`;
+Genera esattamente 10 oggetti.`;
 
-      const aiRes = await fetch(PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 4000,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
-
-      if (!aiRes.ok) throw new Error("Errore nella chiamata AI.");
-      const aiData = await aiRes.json();
-      const rawText = aiData.content[0].text.trim();
+      const raw1 = await chiamaAI(prompt1);
 
       let domande;
       try {
-        domande = JSON.parse(pulisciJSON(rawText));
+        domande = JSON.parse(pulisciJSON(raw1));
       } catch(e) {
-        const match = rawText.match(/\[[\s\S]*\]/);
-        if (!match) throw new Error("Risposta AI non valida: " + e.message);
-        try {
-          domande = JSON.parse(pulisciJSON(match[0]));
-        } catch(e2) {
-          throw new Error("Risposta AI non valida: " + e2.message);
-        }
+        const match = raw1.match(/\[[\s\S]*?\]/);
+        if (!match) throw new Error("Domande non valide: " + e.message);
+        domande = JSON.parse(pulisciJSON(match[0]));
       }
 
       if (!Array.isArray(domande) || domande.length === 0) {
         throw new Error("Nessuna domanda generata.");
       }
 
+      // ── CHIAMATA 2: genera svolgimenti in testo libero con LaTeX ──
+      setStatus("loading", "⏳ Generazione svolgimenti (2/2)...");
+
+      const elenco = domande.map((d, i) =>
+        `${i + 1}. ${d.domanda} [Risposta corretta: ${d.opzioni[d.corretta]}]`
+      ).join("\n");
+
+      const prompt2 = `Sei un insegnante di matematica. Per ciascuna delle seguenti domande, scrivi uno svolgimento didattico passo-passo.
+
+Domande:
+${elenco}
+
+FORMATO DI RISPOSTA:
+- Scrivi esattamente 10 svolgimenti numerati: ---1--- , ---2--- , ecc.
+- Ogni svolgimento: massimo 4 righe separate da " | "
+- Puoi usare LaTeX inline con $ $ per formule (es: $\\frac{1}{2}$, $x^{2}$, $\\sqrt{x}$)
+- Niente altri separatori, niente testo introduttivo
+
+Esempio:
+---1---
+Passo 1: testo | Passo 2: $\\frac{a}{b}$ | Passo 3: risultato
+---2---
+Passo 1: testo | Passo 2: testo`;
+
+      const raw2 = await chiamaAI(prompt2);
+
+      // Parsing svolgimenti: estrai blocchi ---N---
+      const svolgimenti = [];
+      for (let i = 1; i <= domande.length; i++) {
+        const re = new RegExp(`---${i}---\\s*([\\s\\S]*?)(?=---${i+1}---|$)`);
+        const m = raw2.match(re);
+        if (m) {
+          const passi = m[1].trim().split('|').map(p => p.trim()).filter(Boolean);
+          svolgimenti.push(passi);
+        } else {
+          svolgimenti.push([]);
+        }
+      }
+
+      // Abbina svolgimenti alle domande
+      domande = domande.map((d, i) => ({
+        ...d,
+        svolgimento: svolgimenti[i] || []
+      }));
+
+      // ── SALVATAGGIO SU SUPABASE ──
       setStatus("loading", "💾 Salvataggio su Supabase...");
 
       const slug = slugify(titolo) + "-" + Date.now().toString(36);
@@ -410,7 +440,7 @@ Genera esattamente 10 domande in questo formato.`;
 
       if (!dbRes.ok) throw new Error("Errore Supabase: " + await dbRes.text());
 
-      setStatus("success", `✅ Quiz creato con ${domande.length} domande!`);
+      setStatus("success", `✅ Quiz creato con ${domande.length} domande e svolgimenti!`);
 
       const link = `${BASE_URL}/math-quiz/${slug}`;
       document.getElementById("link-url").textContent = link;
