@@ -340,13 +340,15 @@ Ogni domanda deve avere:
 - Una domanda chiara e precisa
 - 4 opzioni di risposta (1 corretta + 3 distrattori plausibili ma sbagliati)
 - L'indice (0-based) dell'opzione corretta
+- Uno svolgimento passo-passo che spiega come si arriva alla risposta corretta (massimo 4-5 righe, usa testo semplice senza simboli speciali)
 
 Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza backtick, senza markdown. Formato esatto:
 [
   {
     "domanda": "testo della domanda",
     "opzioni": ["opzione A", "opzione B", "opzione C", "opzione D"],
-    "corretta": 0
+    "corretta": 0,
+    "svolgimento": "Passo 1: ... Passo 2: ... Passo 3: ..."
   }
 ]
 
@@ -354,6 +356,8 @@ Assicurati che:
 - Le domande siano adeguate al livello ${livello}
 - I distrattori siano plausibili (errori comuni degli studenti)
 - L'indice "corretta" sia corretto (0, 1, 2 o 3)
+- Lo svolgimento sia chiaro, didattico e spieghi ogni passaggio
+- Usa solo testo semplice nello svolgimento, senza caratteri speciali o simboli matematici complessi
 - Il JSON sia valido e completo con esattamente 10 domande`;
 
       const aiRes = await fetch(PROXY_URL, {
