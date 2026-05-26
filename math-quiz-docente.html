@@ -370,13 +370,25 @@ Assicurati che:
       const aiData = await aiRes.json();
       const rawText = aiData.content[0].text.trim();
 
-      let domande;
+     let domande;
       try {
-        domande = JSON.parse(rawText);
+        const cleaned = rawText
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+          .replace(/\n/g, ' ')
+          .replace(/\r/g, '');
+        domande = JSON.parse(cleaned);
       } catch(e) {
         const match = rawText.match(/\[[\s\S]*\]/);
         if (!match) throw new Error("Risposta AI non valida.");
-        domande = JSON.parse(match[0]);
+        try {
+          const cleaned2 = match[0]
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '');
+          domande = JSON.parse(cleaned2);
+        } catch(e2) {
+          throw new Error("Risposta AI non valida: " + e2.message);
+        }
       }
 
       if (!Array.isArray(domande) || domande.length === 0) throw new Error("Nessuna domanda generata.");
