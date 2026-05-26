@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Quiz — Tool Docente</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #1a202c;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #2d3748;
+      margin-bottom: 20px;
+      transition: border-color 0.18s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+
+    .genera-btn {
+      width: 100%;
+      padding: 14px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+
+    .genera-btn:hover:not(:disabled) { background: #4338ca; }
+    .genera-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .status {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      display: none;
+    }
+
+    .status.loading {
+      background: #eef2ff;
+      color: #4f46e5;
+      display: block;
+    }
+
+    .status.success {
+      background: #f0fff4;
+      color: #276749;
+      display: block;
+    }
+
+    .status.error {
+      background: #fff5f5;
+      color: #c53030;
+      display: block;
+    }
+
+    .link-box {
+      margin-top: 24px;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      display: none;
+    }
+
+    .link-box p {
+      font-size: 0.85rem;
+      color: #718096;
+      margin-bottom: 8px;
+    }
+
+    .link-box .link-url {
+      font-size: 0.95rem;
+      color: #4f46e5;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      margin-top: 10px;
+      padding: 8px 18px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover { background: #4338ca; }
+
+    .preview {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .preview h3 {
+      font-size: 1rem;
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+
+    .q-item {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+
+    .q-item strong {
+      color: #2d3748;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .q-item .opzioni {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .q-item .opzioni span {
+      color: #4a5568;
+    }
+
+    .q-item .opzioni span.corretta {
+      color: #276749;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🧮 Math Quiz — Tool Docente</h1>
+  <p class="subtitle">Genera un quiz di matematica con AI e condividilo con i tuoi studenti.</p>
+
+  <label for="titolo">Titolo del quiz</label>
+  <input type="text" id="titolo" placeholder="Es. Algebra di base — Classe 3A" />
+
+  <label for="argomento">Argomento</label>
+  <input type="text" id="argomento" placeholder="Es. equazioni di primo grado, frazioni, limiti..." />
+
+  <label for="livello">Livello</label>
+  <select id="livello">
+    <option value="aritmetica">Aritmetica (scuola media / biennio)</option>
+    <option value="algebra">Algebra (biennio / triennio)</option>
+    <option value="geometria">Geometria</option>
+    <option value="analisi">Analisi (triennio / liceo scientifico)</option>
+  </select>
+
+  <button class="genera-btn" id="genera-btn" onclick="genera()">Genera Quiz</button>
+
+  <div class="status" id="status"></div>
+  <div class="link-box" id="link-box">
+    <p>🔗 Link da condividere con gli studenti:</p>
+    <div class="link-url" id="link-url"></div>
+    <button class="copy-btn" onclick="copiaLink()">Copia link</button>
+  </div>
+
+  <div class="preview" id="preview">
+    <h3>Anteprima domande generate:</h3>
+    <div id="preview-list"></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://tageubqfxkshigrriiyw.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44";
+  const PROXY_URL = "https://matching-proxy.pietro-dipalo.workers.dev";
+
+  let slugGenerato = "";
+
+  function slugify(str) {
+    return str.toLowerCase()
+      .replace(/[àáâã]/g, 'a').replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i').replace(/[òóôõ]/g, 'o')
+      .replace(/[ùúûü]/g, 'u')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 60);
+  }
+
+  async function genera() {
+    const titolo = document.getElementById("titolo").value.trim();
+    const argomento = document.getElementById("argomento").value.trim();
+    const livello = document.getElementById("livello").value;
+
+    if (!titolo || !argomento) {
+      alert("Compila titolo e argomento.");
+      return;
+    }
+
+    const btn = document.getElementById("genera-btn");
+    btn.disabled = true;
+    setStatus("loading", "⏳ Generazione domande in corso con AI...");
+
+    try {
+      // 1. Chiama AI via proxy
+      const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
+
+Ogni domanda deve avere:
+- Una domanda chiara e precisa
+- 4 opzioni di risposta (1 corretta + 3 distrattori plausibili ma sbagliati)
+- L'indice (0-based) dell'opzione corretta
+
+Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza backtick, senza markdown. Formato esatto:
+[
+  {
+    "domanda": "testo della domanda",
+    "opzioni": ["opzione A", "opzione B", "opzione C", "opzione D"],
+    "corretta": 0
+  }
+]
+
+Assicurati che:
+- Le domande siano adeguate al livello ${livello}
+- I distrattori siano plausibili (errori comuni degli studenti)
+- L'indice "corretta" sia corretto (0, 1, 2 o 3)
+- Il JSON sia valido e completo con esattamente 10 domande`;
+
+      const aiRes = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!aiRes.ok) throw new Error("Errore nella chiamata AI.");
+      const aiData = await aiRes.json();
+      const rawText = aiData.content[0].text.trim();
+
+      let domande;
+      try {
+        domande = JSON.parse(rawText);
+      } catch(e) {
+        // Prova a estrarre il JSON se c'è testo attorno
+        const match = rawText.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error("Risposta AI non valida.");
+        domande = JSON.parse(match[0]);
+      }
+
+      if (!Array.isArray(domande) || domande.length === 0) {
+        throw new Error("Nessuna domanda generata.");
+      }
+
+      // 2. Salva su Supabase
+      setStatus("loading", "💾 Salvataggio su Supabase...");
+
+      const slug = slugify(titolo) + "-" + Date.now().toString(36);
+      slugGenerato = slug;
+
+      const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/MathQuiz`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          titolo,
+          slug,
+          contenuto: domande
+        })
+      });
+
+      if (!dbRes.ok) {
+        const errText = await dbRes.text();
+        throw new Error("Errore Supabase: " + errText);
+      }
+
+      // 3. Mostra link e anteprima
+      setStatus("success", `✅ Quiz creato con ${domande.length} domande!`);
+
+      const link = `https://giochi.istitutojanus.it/math-quiz/${slug}`;
+      document.getElementById("link-url").textContent = link;
+      document.getElementById("link-box").style.display = "block";
+
+      mostraAnteprima(domande);
+
+    } catch(e) {
+      setStatus("error", "❌ " + (e.message || "Errore sconosciuto."));
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setStatus(tipo, msg) {
+    const el = document.getElementById("status");
+    el.className = "status " + tipo;
+    el.textContent = msg;
+  }
+
+  function copiaLink() {
+    const link = document.getElementById("link-url").textContent;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.querySelector(".copy-btn");
+      btn.textContent = "✓ Copiato!";
+      setTimeout(() => btn.textContent = "Copia link", 2000);
+    });
+  }
+
+  function mostraAnteprima(domande) {
+    const list = document.getElementById("preview-list");
+    list.innerHTML = "";
+
+    domande.forEach((d, i) => {
+      const div = document.createElement("div");
+      div.className = "q-item";
+
+      const opzioniHtml = d.opzioni.map((op, idx) =>
+        `<span class="${idx === d.corretta ? 'corretta' : ''}">${idx === d.corretta ? '✓ ' : ''}${op}</span>`
+      ).join("");
+
+      div.innerHTML = `
+        <strong>${i + 1}. ${d.domanda}</strong>
+        <div class="opzioni">${opzioniHtml}</div>
+      `;
+      list.appendChild(div);
+    });
+
+    document.getElementById("preview").style.display = "block";
+  }
+</script>
+</body>
+</html>
