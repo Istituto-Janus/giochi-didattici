@@ -14,10 +14,7 @@
       padding: 24px;
     }
 
-    .page {
-      max-width: 700px;
-      margin: 0 auto;
-    }
+    .page { max-width: 700px; margin: 0 auto; }
 
     .container {
       background: white;
@@ -28,17 +25,9 @@
       margin-bottom: 32px;
     }
 
-    h1 {
-      font-size: 1.5rem;
-      color: #1a202c;
-      margin-bottom: 6px;
-    }
+    h1 { font-size: 1.5rem; color: #1a202c; margin-bottom: 6px; }
 
-    .subtitle {
-      color: #718096;
-      font-size: 0.95rem;
-      margin-bottom: 32px;
-    }
+    .subtitle { color: #718096; font-size: 0.95rem; margin-bottom: 32px; }
 
     label {
       display: block;
@@ -59,10 +48,7 @@
       transition: border-color 0.18s;
     }
 
-    input:focus, select:focus {
-      outline: none;
-      border-color: #4f46e5;
-    }
+    input:focus, select:focus { outline: none; border-color: #4f46e5; }
 
     .genera-btn {
       width: 100%;
@@ -101,11 +87,7 @@
       display: none;
     }
 
-    .link-box p {
-      font-size: 0.85rem;
-      color: #718096;
-      margin-bottom: 8px;
-    }
+    .link-box p { font-size: 0.85rem; color: #718096; margin-bottom: 8px; }
 
     .link-box .link-url {
       font-size: 0.95rem;
@@ -127,16 +109,9 @@
 
     .copy-btn:hover { background: #4338ca; }
 
-    .preview {
-      margin-top: 24px;
-      display: none;
-    }
+    .preview { margin-top: 24px; display: none; }
 
-    .preview h3 {
-      font-size: 1rem;
-      color: #2d3748;
-      margin-bottom: 12px;
-    }
+    .preview h3 { font-size: 1rem; color: #2d3748; margin-bottom: 12px; }
 
     .q-item {
       background: #f7fafc;
@@ -146,11 +121,7 @@
       font-size: 0.9rem;
     }
 
-    .q-item strong {
-      color: #2d3748;
-      display: block;
-      margin-bottom: 6px;
-    }
+    .q-item strong { color: #2d3748; display: block; margin-bottom: 6px; }
 
     .q-item .opzioni {
       display: grid;
@@ -168,11 +139,7 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
     }
 
-    .elenco-container h2 {
-      font-size: 1.2rem;
-      color: #1a202c;
-      margin-bottom: 20px;
-    }
+    .elenco-container h2 { font-size: 1.2rem; color: #1a202c; margin-bottom: 20px; }
 
     .quiz-card {
       border: 2px solid #e2e8f0;
@@ -185,23 +152,10 @@
       gap: 12px;
     }
 
-    .quiz-card-info strong {
-      display: block;
-      color: #2d3748;
-      font-size: 0.95rem;
-      margin-bottom: 4px;
-    }
+    .quiz-card-info strong { display: block; color: #2d3748; font-size: 0.95rem; margin-bottom: 4px; }
+    .quiz-card-info span { font-size: 0.82rem; color: #718096; }
 
-    .quiz-card-info span {
-      font-size: 0.82rem;
-      color: #718096;
-    }
-
-    .quiz-card-actions {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+    .quiz-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
     .btn-small {
       padding: 7px 14px;
@@ -217,19 +171,8 @@
     .btn-apri { background: #e2e8f0; color: #2d3748; }
     .btn-apri:hover { background: #cbd5e0; }
 
-    .elenco-loading {
-      color: #718096;
-      font-size: 0.95rem;
-      text-align: center;
-      padding: 20px 0;
-    }
-
-    .elenco-empty {
-      color: #a0aec0;
-      font-size: 0.95rem;
-      text-align: center;
-      padding: 20px 0;
-    }
+    .elenco-loading { color: #718096; font-size: 0.95rem; text-align: center; padding: 20px 0; }
+    .elenco-empty { color: #a0aec0; font-size: 0.95rem; text-align: center; padding: 20px 0; }
 
     .refresh-btn {
       background: none;
@@ -308,15 +251,6 @@
       .substring(0, 60);
   }
 
-  function pulisciJSON(str) {
-    return str
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      .replace(/\r\n/g, ' ')
-      .replace(/\r/g, ' ')
-      .replace(/\n/g, ' ')
-      .trim();
-  }
-
   async function chiamaAI(prompt) {
     const res = await fetch(PROXY_URL, {
       method: "POST",
@@ -332,6 +266,68 @@
     return data.content[0].text.trim();
   }
 
+  // Parsing testo libero → array domande
+  // Formato atteso dall'AI:
+  // ==1==
+  // DOMANDA: testo
+  // A: opzione
+  // B: opzione
+  // C: opzione
+  // D: opzione
+  // CORRETTA: B
+  function parsaDomandeTesto(testo) {
+    const domande = [];
+    // Splitta sui blocchi ==N==
+    const blocchi = testo.split(/==\d+==/).filter(b => b.trim());
+
+    for (const blocco of blocchi) {
+      const righe = blocco.split('\n').map(r => r.trim()).filter(Boolean);
+      let domanda = '';
+      const opzioni = [];
+      let corretta = 0;
+      const lettere = ['A', 'B', 'C', 'D'];
+
+      for (const riga of righe) {
+        if (riga.startsWith('DOMANDA:')) {
+          domanda = riga.replace('DOMANDA:', '').trim();
+        } else if (riga.startsWith('A:')) {
+          opzioni[0] = riga.replace('A:', '').trim();
+        } else if (riga.startsWith('B:')) {
+          opzioni[1] = riga.replace('B:', '').trim();
+        } else if (riga.startsWith('C:')) {
+          opzioni[2] = riga.replace('C:', '').trim();
+        } else if (riga.startsWith('D:')) {
+          opzioni[3] = riga.replace('D:', '').trim();
+        } else if (riga.startsWith('CORRETTA:')) {
+          const lettera = riga.replace('CORRETTA:', '').trim().toUpperCase();
+          corretta = lettere.indexOf(lettera);
+          if (corretta < 0) corretta = 0;
+        }
+      }
+
+      if (domanda && opzioni.length === 4) {
+        domande.push({ domanda, opzioni, corretta });
+      }
+    }
+    return domande;
+  }
+
+  // Parsing svolgimenti testo libero
+  function parsaSvolgimenti(testo, n) {
+    const svolgimenti = [];
+    for (let i = 1; i <= n; i++) {
+      const re = new RegExp(`---${i}---\\s*([\\s\\S]*?)(?=---${i+1}---|$)`);
+      const m = testo.match(re);
+      if (m) {
+        const passi = m[1].trim().split('|').map(p => p.trim()).filter(Boolean);
+        svolgimenti.push(passi);
+      } else {
+        svolgimenti.push([]);
+      }
+    }
+    return svolgimenti;
+  }
+
   async function genera() {
     const titolo    = document.getElementById("titolo").value.trim();
     const argomento = document.getElementById("argomento").value.trim();
@@ -345,79 +341,76 @@
     document.getElementById("preview").style.display = "none";
 
     try {
-      // ── CHIAMATA 1: genera domande in JSON puro, zero LaTeX ──
+      // ── CHIAMATA 1: testo libero, zero JSON ──
       setStatus("loading", "⏳ Generazione domande (1/2)...");
 
       const prompt1 = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
 
-REGOLE ASSOLUTE:
-- Rispondi SOLO con un array JSON valido
-- Zero testo prima o dopo, zero backtick, zero markdown
-- Usa SOLO testo semplice in italiano: niente LaTeX, niente backslash, niente simboli speciali
-- Per le frazioni scrivi "a/b", per gli esponenti scrivi "x^2", per la radice scrivi "sqrt(x)"
-- Ogni stringa su una sola riga
+Usa ESATTAMENTE questo formato per ogni domanda, niente di diverso:
 
-Formato:
-[{"domanda":"testo","opzioni":["A","B","C","D"],"corretta":0}]
+==1==
+DOMANDA: testo della domanda
+A: prima opzione
+B: seconda opzione
+C: terza opzione
+D: quarta opzione
+CORRETTA: A
 
-Genera esattamente 10 oggetti.`;
+==2==
+DOMANDA: testo della domanda
+A: prima opzione
+B: seconda opzione
+C: terza opzione
+D: quarta opzione
+CORRETTA: B
+
+E cosi via fino a ==10==
+
+Regole:
+- Usa solo testo semplice in italiano
+- Niente simboli matematici speciali, niente LaTeX
+- Per le frazioni scrivi "1/2", per gli esponenti scrivi "x^2"
+- La risposta CORRETTA deve essere una sola lettera: A, B, C o D
+- Genera esattamente 10 domande numerate da ==1== a ==10==`;
 
       const raw1 = await chiamaAI(prompt1);
+      const domande = parsaDomandeTesto(raw1);
 
-      let domande;
-      try {
-        domande = JSON.parse(pulisciJSON(raw1));
-      } catch(e) {
-        const match = raw1.match(/\[[\s\S]*?\]/);
-        if (!match) throw new Error("Domande non valide: " + e.message);
-        domande = JSON.parse(pulisciJSON(match[0]));
+      if (domande.length === 0) {
+        throw new Error("Nessuna domanda estratta. Riprova.");
       }
 
-      if (!Array.isArray(domande) || domande.length === 0) {
-        throw new Error("Nessuna domanda generata.");
-      }
-
-      // ── CHIAMATA 2: genera svolgimenti in testo libero con LaTeX ──
-      setStatus("loading", "⏳ Generazione svolgimenti (2/2)...");
+      // ── CHIAMATA 2: svolgimenti in testo libero con LaTeX ──
+      setStatus("loading", `⏳ Generazione svolgimenti (2/2) per ${domande.length} domande...`);
 
       const elenco = domande.map((d, i) =>
         `${i + 1}. ${d.domanda} [Risposta corretta: ${d.opzioni[d.corretta]}]`
       ).join("\n");
 
-      const prompt2 = `Sei un insegnante di matematica. Per ciascuna delle seguenti domande, scrivi uno svolgimento didattico passo-passo.
+      const prompt2 = `Sei un insegnante di matematica. Per ciascuna delle seguenti ${domande.length} domande, scrivi uno svolgimento didattico passo-passo.
 
 Domande:
 ${elenco}
 
-FORMATO DI RISPOSTA:
-- Scrivi esattamente 10 svolgimenti numerati: ---1--- , ---2--- , ecc.
-- Ogni svolgimento: massimo 4 righe separate da " | "
-- Puoi usare LaTeX inline con $ $ per formule (es: $\\frac{1}{2}$, $x^{2}$, $\\sqrt{x}$)
-- Niente altri separatori, niente testo introduttivo
-
-Esempio:
+FORMATO DI RISPOSTA — rispetta esattamente questa struttura:
 ---1---
-Passo 1: testo | Passo 2: $\\frac{a}{b}$ | Passo 3: risultato
+Passo 1: testo del primo passo | Passo 2: testo del secondo passo | Passo 3: testo conclusivo
 ---2---
-Passo 1: testo | Passo 2: testo`;
+Passo 1: testo | Passo 2: testo
+---3---
+...e così via fino a ---${domande.length}---
+
+Regole:
+- Ogni svolgimento su UNA SOLA RIGA, passi separati da " | "
+- Massimo 4 passi per domanda
+- Puoi usare LaTeX inline con $ $ per formule (es: $\\frac{1}{2}$, $x^{2}$, $\\sqrt{x}$, $\\lim_{x \\to 0}$)
+- Niente testo introduttivo, inizia direttamente con ---1---`;
 
       const raw2 = await chiamaAI(prompt2);
+      const svolgimenti = parsaSvolgimenti(raw2, domande.length);
 
-      // Parsing svolgimenti: estrai blocchi ---N---
-      const svolgimenti = [];
-      for (let i = 1; i <= domande.length; i++) {
-        const re = new RegExp(`---${i}---\\s*([\\s\\S]*?)(?=---${i+1}---|$)`);
-        const m = raw2.match(re);
-        if (m) {
-          const passi = m[1].trim().split('|').map(p => p.trim()).filter(Boolean);
-          svolgimenti.push(passi);
-        } else {
-          svolgimenti.push([]);
-        }
-      }
-
-      // Abbina svolgimenti alle domande
-      domande = domande.map((d, i) => ({
+      // Abbina svolgimenti
+      const domandeFinali = domande.map((d, i) => ({
         ...d,
         svolgimento: svolgimenti[i] || []
       }));
@@ -435,18 +428,18 @@ Passo 1: testo | Passo 2: testo`;
           Authorization: `Bearer ${SUPABASE_KEY}`,
           Prefer: "return=minimal"
         },
-        body: JSON.stringify({ titolo, slug, contenuto: domande })
+        body: JSON.stringify({ titolo, slug, contenuto: domandeFinali })
       });
 
       if (!dbRes.ok) throw new Error("Errore Supabase: " + await dbRes.text());
 
-      setStatus("success", `✅ Quiz creato con ${domande.length} domande e svolgimenti!`);
+      setStatus("success", `✅ Quiz creato con ${domandeFinali.length} domande e svolgimenti!`);
 
       const link = `${BASE_URL}/math-quiz/${slug}`;
       document.getElementById("link-url").textContent = link;
       document.getElementById("link-box").style.display = "block";
 
-      mostraAnteprima(domande);
+      mostraAnteprima(domandeFinali);
       caricaElenco();
 
     } catch(e) {
