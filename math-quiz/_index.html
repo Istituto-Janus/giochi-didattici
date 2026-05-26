@@ -189,7 +189,6 @@
       line-height: 1.7;
     }
 
-    /* KaTeX overrides per colori */
     .svolgimento .katex { color: #744210; }
 
     .next-btn {
@@ -317,10 +316,6 @@
   let domande = [];
   let correnti = 0;
   let punteggio = 0;
-  let katexPronto = false;
-
-  // Aspetta che KaTeX sia caricato
-  window.addEventListener('load', () => { katexPronto = true; });
 
   function renderKatex(elemento) {
     if (typeof renderMathInElement === 'function') {
@@ -332,6 +327,35 @@
         throwOnError: false
       });
     }
+  }
+
+  // Converte notazione semplice in LaTeX inline per KaTeX
+  // es: x^2 → $x^{2}$, 1/2 → $\frac{1}{2}$, sqrt(x) → $\sqrt{x}$
+  function convertiInLatex(testo) {
+    if (!testo) return '';
+
+    // Escape HTML base per sicurezza
+    let t = testo
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // sqrt(x) → $\sqrt{x}$
+    t = t.replace(/sqrt\(([^)]+)\)/g, (_, arg) => `$\\sqrt{${arg}}$`);
+
+    // a/b (solo numeri o variabili semplici, non URL o testo generico)
+    // pattern: numero/numero o var/numero o numero/var
+    t = t.replace(/\b(\d+|[a-zA-Z])\s*\/\s*(\d+|[a-zA-Z])\b/g,
+      (_, n, d) => `$\\frac{${n}}{${d}}$`);
+
+    // x^2 o x^{2} → $x^{2}$
+    t = t.replace(/([a-zA-Z0-9])\^(\{[^}]+\}|\d+)/g,
+      (_, base, exp) => {
+        const e = exp.startsWith('{') ? exp : `{${exp}}`;
+        return `$${base}^${e}$`;
+      });
+
+    return t;
   }
 
   async function caricaQuiz() {
@@ -366,7 +390,11 @@
 
     document.getElementById("progress-bar").style.width = `${(correnti / totale) * 100}%`;
     document.getElementById("question-counter").textContent = `Domanda ${correnti + 1} di ${totale}`;
-    document.getElementById("question-text").textContent = d.domanda;
+
+    // Domanda con conversione LaTeX
+    const questionEl = document.getElementById("question-text");
+    questionEl.innerHTML = convertiInLatex(d.domanda);
+    renderKatex(questionEl);
 
     const fb = document.getElementById("feedback");
     fb.className = "feedback";
@@ -386,9 +414,11 @@
     d.opzioni.forEach((testo, i) => {
       const btn = document.createElement("button");
       btn.className = "option-btn";
-      btn.textContent = testo;
+      // Opzioni con conversione LaTeX
+      btn.innerHTML = convertiInLatex(testo);
       btn.addEventListener("click", () => rispondi(i, d.corretta));
       optsEl.appendChild(btn);
+      renderKatex(btn);
     });
   }
 
@@ -397,7 +427,6 @@
     const passiEl = document.getElementById("svolgimento-passi");
     passiEl.innerHTML = "";
 
-    // Supporta sia array (nuovo formato) che stringa con | (vecchio formato)
     let passi = [];
     if (Array.isArray(svolgimento)) {
       passi = svolgimento;
@@ -418,8 +447,6 @@
     });
 
     sv.style.display = "block";
-
-    // Renderizza KaTeX sui passi appena inseriti
     renderKatex(passiEl);
   }
 
