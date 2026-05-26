@@ -11,19 +11,21 @@
       font-family: 'Segoe UI', sans-serif;
       background: #f0f4f8;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       padding: 24px;
+    }
+
+    .page {
+      max-width: 700px;
+      margin: 0 auto;
     }
 
     .container {
       background: white;
       border-radius: 16px;
       padding: 40px;
-      max-width: 640px;
       width: 100%;
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      margin-bottom: 32px;
     }
 
     h1 {
@@ -86,23 +88,9 @@
       display: none;
     }
 
-    .status.loading {
-      background: #eef2ff;
-      color: #4f46e5;
-      display: block;
-    }
-
-    .status.success {
-      background: #f0fff4;
-      color: #276749;
-      display: block;
-    }
-
-    .status.error {
-      background: #fff5f5;
-      color: #c53030;
-      display: block;
-    }
+    .status.loading { background: #eef2ff; color: #4f46e5; display: block; }
+    .status.success { background: #f0fff4; color: #276749; display: block; }
+    .status.error   { background: #fff5f5; color: #c53030; display: block; }
 
     .link-box {
       margin-top: 24px;
@@ -170,56 +158,157 @@
       gap: 4px;
     }
 
-    .q-item .opzioni span {
-      color: #4a5568;
+    .q-item .opzioni span { color: #4a5568; }
+    .q-item .opzioni span.corretta { color: #276749; font-weight: 600; }
+
+    /* Sezione elenco quiz */
+    .elenco-container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
     }
 
-    .q-item .opzioni span.corretta {
-      color: #276749;
-      font-weight: 600;
+    .elenco-container h2 {
+      font-size: 1.2rem;
+      color: #1a202c;
+      margin-bottom: 20px;
     }
+
+    .quiz-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .quiz-card-info strong {
+      display: block;
+      color: #2d3748;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .quiz-card-info span {
+      font-size: 0.82rem;
+      color: #718096;
+    }
+
+    .quiz-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-small {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-copia {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-copia:hover { background: #4338ca; }
+
+    .btn-apri {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .btn-apri:hover { background: #cbd5e0; }
+
+    .elenco-loading {
+      color: #718096;
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .elenco-empty {
+      color: #a0aec0;
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .refresh-btn {
+      background: none;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: #4a5568;
+      cursor: pointer;
+      margin-bottom: 16px;
+      float: right;
+    }
+
+    .refresh-btn:hover { border-color: #4f46e5; color: #4f46e5; }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>🧮 Math Quiz — Tool Docente</h1>
-  <p class="subtitle">Genera un quiz di matematica con AI e condividilo con i tuoi studenti.</p>
+<div class="page">
 
-  <label for="titolo">Titolo del quiz</label>
-  <input type="text" id="titolo" placeholder="Es. Algebra di base — Classe 3A" />
+  <!-- FORM GENERAZIONE -->
+  <div class="container">
+    <h1>🧮 Math Quiz — Tool Docente</h1>
+    <p class="subtitle">Genera un quiz di matematica con AI e condividilo con i tuoi studenti.</p>
 
-  <label for="argomento">Argomento</label>
-  <input type="text" id="argomento" placeholder="Es. equazioni di primo grado, frazioni, limiti..." />
+    <label for="titolo">Titolo del quiz</label>
+    <input type="text" id="titolo" placeholder="Es. Algebra di base — Classe 3A" />
 
-  <label for="livello">Livello</label>
-  <select id="livello">
-    <option value="aritmetica">Aritmetica (scuola media / biennio)</option>
-    <option value="algebra">Algebra (biennio / triennio)</option>
-    <option value="geometria">Geometria</option>
-    <option value="analisi">Analisi (triennio / liceo scientifico)</option>
-  </select>
+    <label for="argomento">Argomento</label>
+    <input type="text" id="argomento" placeholder="Es. equazioni di primo grado, frazioni, limiti..." />
 
-  <button class="genera-btn" id="genera-btn" onclick="genera()">Genera Quiz</button>
+    <label for="livello">Livello</label>
+    <select id="livello">
+      <option value="aritmetica">Aritmetica (scuola media / biennio)</option>
+      <option value="algebra">Algebra (biennio / triennio)</option>
+      <option value="geometria">Geometria</option>
+      <option value="analisi">Analisi (triennio / liceo scientifico)</option>
+    </select>
 
-  <div class="status" id="status"></div>
-  <div class="link-box" id="link-box">
-    <p>🔗 Link da condividere con gli studenti:</p>
-    <div class="link-url" id="link-url"></div>
-    <button class="copy-btn" onclick="copiaLink()">Copia link</button>
+    <button class="genera-btn" id="genera-btn" onclick="genera()">Genera Quiz</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="link-box" id="link-box">
+      <p>🔗 Link da condividere con gli studenti:</p>
+      <div class="link-url" id="link-url"></div>
+      <button class="copy-btn" onclick="copiaLink()">Copia link</button>
+    </div>
+
+    <div class="preview" id="preview">
+      <h3>Anteprima domande generate:</h3>
+      <div id="preview-list"></div>
+    </div>
   </div>
 
-  <div class="preview" id="preview">
-    <h3>Anteprima domande generate:</h3>
-    <div id="preview-list"></div>
+  <!-- ELENCO QUIZ CREATI -->
+  <div class="elenco-container">
+    <h2>📋 Quiz creati</h2>
+    <button class="refresh-btn" onclick="caricaElenco()">↻ Aggiorna</button>
+    <div style="clear:both"></div>
+    <div id="elenco-lista"><div class="elenco-loading">Caricamento...</div></div>
   </div>
+
 </div>
 
 <script>
   const SUPABASE_URL = "https://tageubqfxkshigrriiyw.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44";
   const PROXY_URL = "https://matching-proxy.pietro-dipalo.workers.dev";
-
-  let slugGenerato = "";
+  const BASE_URL  = "https://giochi.istitutojanus.it";
 
   function slugify(str) {
     return str.toLowerCase()
@@ -232,21 +321,19 @@
   }
 
   async function genera() {
-    const titolo = document.getElementById("titolo").value.trim();
+    const titolo    = document.getElementById("titolo").value.trim();
     const argomento = document.getElementById("argomento").value.trim();
-    const livello = document.getElementById("livello").value;
+    const livello   = document.getElementById("livello").value;
 
-    if (!titolo || !argomento) {
-      alert("Compila titolo e argomento.");
-      return;
-    }
+    if (!titolo || !argomento) { alert("Compila titolo e argomento."); return; }
 
     const btn = document.getElementById("genera-btn");
     btn.disabled = true;
     setStatus("loading", "⏳ Generazione domande in corso con AI...");
+    document.getElementById("link-box").style.display = "none";
+    document.getElementById("preview").style.display = "none";
 
     try {
-      // 1. Chiama AI via proxy
       const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
 
 Ogni domanda deve avere:
@@ -287,21 +374,16 @@ Assicurati che:
       try {
         domande = JSON.parse(rawText);
       } catch(e) {
-        // Prova a estrarre il JSON se c'è testo attorno
         const match = rawText.match(/\[[\s\S]*\]/);
         if (!match) throw new Error("Risposta AI non valida.");
         domande = JSON.parse(match[0]);
       }
 
-      if (!Array.isArray(domande) || domande.length === 0) {
-        throw new Error("Nessuna domanda generata.");
-      }
+      if (!Array.isArray(domande) || domande.length === 0) throw new Error("Nessuna domanda generata.");
 
-      // 2. Salva su Supabase
       setStatus("loading", "💾 Salvataggio su Supabase...");
 
       const slug = slugify(titolo) + "-" + Date.now().toString(36);
-      slugGenerato = slug;
 
       const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/MathQuiz`, {
         method: "POST",
@@ -311,26 +393,19 @@ Assicurati che:
           Authorization: `Bearer ${SUPABASE_KEY}`,
           Prefer: "return=minimal"
         },
-        body: JSON.stringify({
-          titolo,
-          slug,
-          contenuto: domande
-        })
+        body: JSON.stringify({ titolo, slug, contenuto: domande })
       });
 
-      if (!dbRes.ok) {
-        const errText = await dbRes.text();
-        throw new Error("Errore Supabase: " + errText);
-      }
+      if (!dbRes.ok) throw new Error("Errore Supabase: " + await dbRes.text());
 
-      // 3. Mostra link e anteprima
       setStatus("success", `✅ Quiz creato con ${domande.length} domande!`);
 
-      const link = `https://giochi.istitutojanus.it/math-quiz/${slug}`;
+      const link = `${BASE_URL}/math-quiz/${slug}`;
       document.getElementById("link-url").textContent = link;
       document.getElementById("link-box").style.display = "block";
 
       mostraAnteprima(domande);
+      caricaElenco(); // aggiorna elenco automaticamente
 
     } catch(e) {
       setStatus("error", "❌ " + (e.message || "Errore sconosciuto."));
@@ -357,24 +432,71 @@ Assicurati che:
   function mostraAnteprima(domande) {
     const list = document.getElementById("preview-list");
     list.innerHTML = "";
-
     domande.forEach((d, i) => {
       const div = document.createElement("div");
       div.className = "q-item";
-
       const opzioniHtml = d.opzioni.map((op, idx) =>
         `<span class="${idx === d.corretta ? 'corretta' : ''}">${idx === d.corretta ? '✓ ' : ''}${op}</span>`
       ).join("");
-
-      div.innerHTML = `
-        <strong>${i + 1}. ${d.domanda}</strong>
-        <div class="opzioni">${opzioniHtml}</div>
-      `;
+      div.innerHTML = `<strong>${i + 1}. ${d.domanda}</strong><div class="opzioni">${opzioniHtml}</div>`;
       list.appendChild(div);
     });
-
     document.getElementById("preview").style.display = "block";
   }
+
+  async function caricaElenco() {
+    const lista = document.getElementById("elenco-lista");
+    lista.innerHTML = '<div class="elenco-loading">Caricamento...</div>';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/MathQuiz?select=titolo,slug,created_at&order=created_at.desc`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      );
+      const data = await res.json();
+
+      if (!data.length) {
+        lista.innerHTML = '<div class="elenco-empty">Nessun quiz creato ancora.</div>';
+        return;
+      }
+
+      lista.innerHTML = "";
+      data.forEach(q => {
+        const link = `${BASE_URL}/math-quiz/${q.slug}`;
+        const data_fmt = new Date(q.created_at).toLocaleDateString('it-IT', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+
+        const card = document.createElement("div");
+        card.className = "quiz-card";
+        card.innerHTML = `
+          <div class="quiz-card-info">
+            <strong>${q.titolo}</strong>
+            <span>Creato il ${data_fmt}</span>
+          </div>
+          <div class="quiz-card-actions">
+            <button class="btn-small btn-copia" onclick="copiaLinkCard('${link}', this)">Copia link</button>
+            <button class="btn-small btn-apri" onclick="window.open('${link}', '_blank')">Apri</button>
+          </div>
+        `;
+        lista.appendChild(card);
+      });
+
+    } catch(e) {
+      lista.innerHTML = '<div class="elenco-empty">Errore nel caricamento elenco.</div>';
+    }
+  }
+
+  function copiaLinkCard(link, btn) {
+    navigator.clipboard.writeText(link).then(() => {
+      btn.textContent = "✓ Copiato!";
+      setTimeout(() => btn.textContent = "Copia link", 2000);
+    });
+  }
+
+  // Carica elenco all'avvio
+  caricaElenco();
 </script>
 </body>
 </html>
