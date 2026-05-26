@@ -161,7 +161,6 @@
     .q-item .opzioni span { color: #4a5568; }
     .q-item .opzioni span.corretta { color: #276749; font-weight: 600; }
 
-    /* Sezione elenco quiz */
     .elenco-container {
       background: white;
       border-radius: 16px;
@@ -213,18 +212,9 @@
       cursor: pointer;
     }
 
-    .btn-copia {
-      background: #4f46e5;
-      color: white;
-    }
-
+    .btn-copia { background: #4f46e5; color: white; }
     .btn-copia:hover { background: #4338ca; }
-
-    .btn-apri {
-      background: #e2e8f0;
-      color: #2d3748;
-    }
-
+    .btn-apri { background: #e2e8f0; color: #2d3748; }
     .btn-apri:hover { background: #cbd5e0; }
 
     .elenco-loading {
@@ -259,7 +249,6 @@
 <body>
 <div class="page">
 
-  <!-- FORM GENERAZIONE -->
   <div class="container">
     <h1>🧮 Math Quiz — Tool Docente</h1>
     <p class="subtitle">Genera un quiz di matematica con AI e condividilo con i tuoi studenti.</p>
@@ -294,7 +283,6 @@
     </div>
   </div>
 
-  <!-- ELENCO QUIZ CREATI -->
   <div class="elenco-container">
     <h2>📋 Quiz creati</h2>
     <button class="refresh-btn" onclick="caricaElenco()">↻ Aggiorna</button>
@@ -320,6 +308,16 @@
       .substring(0, 60);
   }
 
+  function pulisciJSON(str) {
+    // Rimuove solo i caratteri di controllo problematici (non i caratteri accentati)
+    return str
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      .replace(/\r\n/g, ' ')
+      .replace(/\r/g, ' ')
+      .replace(/\n/g, ' ')
+      .trim();
+  }
+
   async function genera() {
     const titolo    = document.getElementById("titolo").value.trim();
     const argomento = document.getElementById("argomento").value.trim();
@@ -334,26 +332,32 @@
     document.getElementById("preview").style.display = "none";
 
     try {
-     const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
+      const prompt = `Sei un insegnante di matematica esperto. Genera esattamente 10 domande a scelta multipla sull'argomento: "${argomento}" (livello: ${livello}).
 
-REGOLE CRITICHE PER IL JSON:
-- Rispondi SOLO con un array JSON valido
-- Zero testo prima o dopo il JSON
-- Zero backtick o markdown
-- Nelle stringhe JSON usa SOLO caratteri ASCII standard
-- NON usare questi simboli nelle stringhe: → ∞ ≤ ≥ ± × ÷ ² ³ √ ∑ ∫ π
-- Al posto di → scrivi: "quindi" o "diventa"
-- Al posto di ∞ scrivi: "infinito"
-- Al posto di ² scrivi: "al quadrato"
-- Al posto di √ scrivi: "radice di"
-- Al posto di π scrivi: "pi greco"
-- NON usare apici o caratteri accentati nelle stringhe JSON
-- Ogni stringa deve essere su una sola riga, senza a capo interni
+Ogni domanda deve avere:
+- Una domanda chiara e precisa
+- 4 opzioni di risposta (1 corretta + 3 distrattori plausibili ma sbagliati)
+- L'indice (0-based) dell'opzione corretta
+- Uno svolgimento passo-passo che spiega come si arriva alla risposta corretta
 
-Formato JSON richiesto:
-[{"domanda":"testo","opzioni":["A","B","C","D"],"corretta":0,"svolgimento":"Passo 1: ... Passo 2: ... Passo 3: ..."}]
+REGOLE FONDAMENTALI PER IL JSON:
+- Rispondi SOLO con un array JSON valido, senza testo prima o dopo
+- Niente backtick, niente markdown
+- NON usare simboli matematici speciali nelle stringhe: al posto di → scrivi "quindi", al posto di ∞ scrivi "infinito", al posto di ² scrivi "^2", al posto di √ scrivi "sqrt", al posto di ≤ scrivi "<=", al posto di ≥ scrivi ">="
+- Ogni stringa JSON deve stare su una sola riga senza a capo interni
+- Lo svolgimento deve essere testo semplice, massimo 4 passi separati da " | "
 
-Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione in italiano semplice, massimo 3-4 passi, usando solo parole e numeri.`;
+Formato esatto richiesto:
+[
+  {
+    "domanda": "testo della domanda",
+    "opzioni": ["opzione A", "opzione B", "opzione C", "opzione D"],
+    "corretta": 0,
+    "svolgimento": "Passo 1: ... | Passo 2: ... | Passo 3: ..."
+  }
+]
+
+Genera esattamente 10 domande in questo formato.`;
 
       const aiRes = await fetch(PROXY_URL, {
         method: "POST",
@@ -369,19 +373,11 @@ Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione i
       const aiData = await aiRes.json();
       const rawText = aiData.content[0].text.trim();
 
-     let domande;
-      function pulisciJSON(str) {
-        return str
-          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-          .replace(/\r/g, '')
-          .replace(/\n/g, ' ')
-          .replace(/([^\\])\\([^"\\/bfnrtu])/g, '$1$2')
-          .replace(/'/g, "\\'")
-          .trim();
-      }
+      let domande;
       try {
         domande = JSON.parse(pulisciJSON(rawText));
       } catch(e) {
+        // Fallback: estrai il blocco JSON dall'eventuale testo attorno
         const match = rawText.match(/\[[\s\S]*\]/);
         if (!match) throw new Error("Risposta AI non valida: " + e.message);
         try {
@@ -391,7 +387,9 @@ Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione i
         }
       }
 
-      if (!Array.isArray(domande) || domande.length === 0) throw new Error("Nessuna domanda generata.");
+      if (!Array.isArray(domande) || domande.length === 0) {
+        throw new Error("Nessuna domanda generata.");
+      }
 
       setStatus("loading", "💾 Salvataggio su Supabase...");
 
@@ -417,7 +415,7 @@ Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione i
       document.getElementById("link-box").style.display = "block";
 
       mostraAnteprima(domande);
-      caricaElenco(); // aggiorna elenco automaticamente
+      caricaElenco();
 
     } catch(e) {
       setStatus("error", "❌ " + (e.message || "Errore sconosciuto."));
@@ -507,7 +505,6 @@ Genera 10 oggetti in questo formato. Lo svolgimento deve spiegare la soluzione i
     });
   }
 
-  // Carica elenco all'avvio
   caricaElenco();
 </script>
 </body>
