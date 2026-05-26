@@ -309,12 +309,12 @@
   }
 
   function pulisciJSON(str) {
-    // Rimuove solo i caratteri di controllo problematici (non i caratteri accentati)
     return str
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
       .replace(/\r\n/g, ' ')
       .replace(/\r/g, ' ')
       .replace(/\n/g, ' ')
+      .replace(/\\([^"\\/bfnrtu0-9])/g, '$1')
       .trim();
   }
 
@@ -340,14 +340,15 @@ Ogni domanda deve avere:
 - L'indice (0-based) dell'opzione corretta
 - Uno svolgimento passo-passo che spiega come si arriva alla risposta corretta
 
-REGOLE FONDAMENTALI PER IL JSON:
+REGOLE PER IL JSON:
 - Rispondi SOLO con un array JSON valido, senza testo prima o dopo
 - Niente backtick, niente markdown
-- NON usare simboli matematici speciali nelle stringhe: al posto di → scrivi "quindi", al posto di ∞ scrivi "infinito", al posto di ² scrivi "^2", al posto di √ scrivi "sqrt", al posto di ≤ scrivi "<=", al posto di ≥ scrivi ">="
-- Ogni stringa JSON deve stare su una sola riga senza a capo interni
-- Lo svolgimento deve essere testo semplice, massimo 4 passi separati da " | "
+- NON usare notazione LaTeX (niente backslash come \frac \lim \infty \cdot)
+- Al posto dei simboli scrivi in italiano: "al quadrato" invece di ^2, "diviso" invece di /, "per" invece di *, "tende a infinito" invece di -> inf
+- Ogni stringa JSON su una sola riga, senza a capo interni
+- Lo svolgimento: massimo 4 passi separati da " | "
 
-Formato esatto richiesto:
+Formato esatto:
 [
   {
     "domanda": "testo della domanda",
@@ -357,7 +358,7 @@ Formato esatto richiesto:
   }
 ]
 
-Genera esattamente 10 domande in questo formato.`;
+Genera esattamente 10 domande.`;
 
       const aiRes = await fetch(PROXY_URL, {
         method: "POST",
@@ -377,7 +378,6 @@ Genera esattamente 10 domande in questo formato.`;
       try {
         domande = JSON.parse(pulisciJSON(rawText));
       } catch(e) {
-        // Fallback: estrai il blocco JSON dall'eventuale testo attorno
         const match = rawText.match(/\[[\s\S]*\]/);
         if (!match) throw new Error("Risposta AI non valida: " + e.message);
         try {
