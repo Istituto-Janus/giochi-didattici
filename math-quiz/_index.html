@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Quiz</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 680px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 1.6rem;
+      color: #1a202c;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      color: #718096;
+      font-size: 0.95rem;
+    }
+
+    .progress-bar-wrap {
+      background: #e2e8f0;
+      border-radius: 999px;
+      height: 8px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #4f46e5;
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    .question-counter {
+      font-size: 0.85rem;
+      color: #718096;
+      text-align: right;
+      margin-bottom: 10px;
+    }
+
+    .question-text {
+      font-size: 1.15rem;
+      color: #2d3748;
+      font-weight: 600;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-btn {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      color: #2d3748;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: #4f46e5;
+      background: #eef2ff;
+    }
+
+    .option-btn.correct {
+      background: #f0fff4;
+      border-color: #38a169;
+      color: #276749;
+    }
+
+    .option-btn.wrong {
+      background: #fff5f5;
+      border-color: #e53e3e;
+      color: #c53030;
+    }
+
+    .option-btn.reveal-correct {
+      background: #f0fff4;
+      border-color: #38a169;
+      color: #276749;
+      opacity: 0.7;
+    }
+
+    .feedback {
+      margin-top: 18px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: none;
+    }
+
+    .feedback.correct {
+      background: #f0fff4;
+      color: #276749;
+      display: block;
+    }
+
+    .feedback.wrong {
+      background: #fff5f5;
+      color: #c53030;
+      display: block;
+    }
+
+    .next-btn {
+      margin-top: 24px;
+      width: 100%;
+      padding: 14px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      transition: background 0.18s;
+    }
+
+    .next-btn:hover { background: #4338ca; }
+
+    /* Schermata risultato finale */
+    .result-screen {
+      text-align: center;
+      display: none;
+    }
+
+    .result-screen .score-circle {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: #eef2ff;
+      border: 6px solid #4f46e5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+
+    .result-screen .score-number {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #4f46e5;
+      line-height: 1;
+    }
+
+    .result-screen .score-label {
+      font-size: 0.8rem;
+      color: #718096;
+    }
+
+    .result-screen h2 {
+      font-size: 1.4rem;
+      color: #1a202c;
+      margin-bottom: 10px;
+    }
+
+    .result-screen p {
+      color: #718096;
+      margin-bottom: 28px;
+    }
+
+    .result-screen .retry-btn {
+      padding: 12px 32px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .result-screen .retry-btn:hover { background: #4338ca; }
+
+    .loading, .error-msg {
+      text-align: center;
+      padding: 40px 0;
+      color: #718096;
+    }
+
+    .error-msg { color: #e53e3e; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div id="loading" class="loading">Caricamento quiz...</div>
+  <div id="error" class="error-msg" style="display:none"></div>
+
+  <!-- Quiz attivo -->
+  <div id="quiz-wrap" style="display:none">
+    <div class="header">
+      <h1 id="quiz-title"></h1>
+      <p id="quiz-subtitle"></p>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="question-counter" id="question-counter"></div>
+    <div class="question-text" id="question-text"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Prossima domanda →</button>
+  </div>
+
+  <!-- Risultato finale -->
+  <div id="result-screen" class="result-screen">
+    <div class="score-circle">
+      <span class="score-number" id="score-number"></span>
+      <span class="score-label">su 10</span>
+    </div>
+    <h2 id="result-title"></h2>
+    <p id="result-msg"></p>
+    <button class="retry-btn" onclick="location.reload()">Riprova</button>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://tageubqfxkshigrriiyw.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44";
+
+  const slug = window.__SLUG__ || "";
+  let domande = [];
+  let correnti = 0;
+  let punteggio = 0;
+
+  async function caricaQuiz() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/MathQuiz?slug=eq.${encodeURIComponent(slug)}&select=titolo,contenuto`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      );
+      const data = await res.json();
+      if (!data.length) throw new Error("Quiz non trovato.");
+
+      const quiz = data[0];
+      domande = quiz.contenuto;
+
+      document.getElementById("quiz-title").textContent = quiz.titolo;
+      document.getElementById("quiz-subtitle").textContent = `${domande.length} domande`;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("quiz-wrap").style.display = "block";
+
+      mostraDomanda();
+    } catch(e) {
+      document.getElementById("loading").style.display = "none";
+      const err = document.getElementById("error");
+      err.style.display = "block";
+      err.textContent = e.message || "Errore nel caricamento.";
+    }
+  }
+
+  function mostraDomanda() {
+    const d = domande[correnti];
+    const totale = domande.length;
+
+    document.getElementById("progress-bar").style.width = `${(correnti / totale) * 100}%`;
+    document.getElementById("question-counter").textContent = `Domanda ${correnti + 1} di ${totale}`;
+    document.getElementById("question-text").textContent = d.domanda;
+
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback";
+    fb.textContent = "";
+
+    const nextBtn = document.getElementById("next-btn");
+    nextBtn.style.display = "none";
+    nextBtn.textContent = correnti + 1 < totale ? "Prossima domanda →" : "Vedi risultato";
+
+    const optsEl = document.getElementById("options");
+    optsEl.innerHTML = "";
+
+    d.opzioni.forEach((testo, i) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.textContent = testo;
+      btn.addEventListener("click", () => rispondi(i, d.corretta));
+      optsEl.appendChild(btn);
+    });
+  }
+
+  function rispondi(scelta, corretta) {
+    const btns = document.querySelectorAll(".option-btn");
+    btns.forEach(b => b.disabled = true);
+
+    const fb = document.getElementById("feedback");
+
+    if (scelta === corretta) {
+      btns[scelta].classList.add("correct");
+      fb.className = "feedback correct";
+      fb.textContent = "✓ Risposta corretta!";
+      punteggio++;
+    } else {
+      btns[scelta].classList.add("wrong");
+      btns[corretta].classList.add("reveal-correct");
+      fb.className = "feedback wrong";
+      fb.textContent = `✗ Sbagliato. La risposta corretta era: "${domande[correnti].opzioni[corretta]}"`;
+    }
+
+    document.getElementById("next-btn").style.display = "block";
+  }
+
+  document.getElementById("next-btn").addEventListener("click", () => {
+    correnti++;
+    if (correnti < domande.length) {
+      mostraDomanda();
+    } else {
+      mostraRisultato();
+    }
+  });
+
+  function mostraRisultato() {
+    document.getElementById("quiz-wrap").style.display = "none";
+    const rs = document.getElementById("result-screen");
+    rs.style.display = "block";
+
+    document.getElementById("score-number").textContent = punteggio;
+
+    let titolo, msg;
+    const perc = punteggio / domande.length;
+
+    if (perc >= 0.9) {
+      titolo = "Eccellente! 🎉";
+      msg = "Ottima padronanza degli argomenti.";
+    } else if (perc >= 0.7) {
+      titolo = "Bravo! 👍";
+      msg = "Buona preparazione, ripassia i punti mancanti.";
+    } else if (perc >= 0.5) {
+      titolo = "Sufficiente";
+      msg = "Ci siamo quasi. Riprova dopo aver ripassato.";
+    } else {
+      titolo = "Da rivedere";
+      msg = "Ripassa gli argomenti e riprova. Ce la fai!";
+    }
+
+    document.getElementById("result-title").textContent = titolo;
+    document.getElementById("result-msg").textContent = msg;
+    document.getElementById("progress-bar").style.width = "100%";
+  }
+
+  caricaQuiz();
+</script>
+</body>
+</html>
