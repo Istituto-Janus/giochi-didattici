@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Completa la Frase — Tool Docente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;padding:1.5rem}
+h1{font-size:20px;font-weight:600;margin-bottom:1.5rem;color:#1a1a1a}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+label{font-size:13px;color:#666;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;font-size:14px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;margin-bottom:1rem;font-family:inherit}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-primary{width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-primary:hover{background:#2563eb}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem}
+.btn-sec{padding:10px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-sec:hover{background:#f9f9f9}
+.status{font-size:13px;color:#666;margin-top:8px;text-align:center;min-height:20px}
+.status.ok{color:#16a34a}
+.status.err{color:#dc2626}
+.link-box{background:#f0fdf4;border-radius:8px;padding:10px 14px;font-size:12px;color:#15803d;word-break:break-all;margin-top:8px;display:flex;align-items:center;gap:8px}
+.modalita-row{display:flex;gap:8px;margin-bottom:1rem}
+.tab{padding:6px 16px;border-radius:8px;border:1px solid #ddd;background:transparent;cursor:pointer;font-size:13px;color:#666}
+.tab.active{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+/* Anteprima */
+.preview-testo{font-size:14px;line-height:2;color:#1a1a1a;margin-top:1rem}
+.preview-testo .buco{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 8px;color:#1d4ed8;font-weight:500;margin:0 2px}
+.frasi-list{margin-top:1rem;display:flex;flex-direction:column;gap:12px}
+.frase-item{background:#f9fafb;border-radius:8px;padding:10px 14px;font-size:13px;line-height:1.8}
+.frase-item .buco{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 8px;color:#1d4ed8;font-weight:500;margin:0 2px}
+.opzioni-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.opz{background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:2px 8px;font-size:12px;color:#555}
+.opz.corretta{background:#f0fdf4;border-color:#86efac;color:#15803d;font-weight:500}
+</style>
+</head>
+<body>
+<h1>✏️ Completa la Frase — Tool Docente</h1>
+
+<div class="card">
+  <label>Modalità esercizio</label>
+  <div class="modalita-row">
+    <button class="tab active" onclick="switchModalita('testo', this)">📄 Testo con 5 buchi</button>
+    <button class="tab" onclick="switchModalita('frasi', this)">📝 5 frasi con 1 buco</button>
+  </div>
+  <label id="label-argomento">Argomento o testo di riferimento</label>
+  <textarea id="argomento" placeholder="Inserisci l'argomento o incolla il testo..."></textarea>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Tipologia esercizio</label>
+      <select id="tipo">
+        <option value="lessico">Lessico / Vocabulario</option>
+        <option value="verbi">Coniugazione verbale</option>
+        <option value="grammatica">Grammatica / Sintassi</option>
+        <option value="concetti">Concetti chiave</option>
+        <option value="date_nomi">Date e nomi storici</option>
+        <option value="scientifico">Terminologia scientifica</option>
+      </select>
+    </div>
+    <div>
+      <label>Lingua</label>
+      <select id="lingua">
+        <option value="italiano">🇮🇹 Italiano</option>
+        <option value="inglese">🇬🇧 Inglese</option>
+        <option value="francese">🇫🇷 Francese</option>
+        <option value="spagnolo">🇪🇸 Spagnolo</option>
+        <option value="tedesco">🇩🇪 Tedesco</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-primary" id="genera-btn" onclick="genera()">✨ Genera esercizio con AI</button>
+  <p class="status" id="status-genera"></p>
+</div>
+
+<div class="card" id="preview-card" style="display:none">
+  <strong style="font-size:13px">Anteprima esercizio generato</strong>
+  <div id="preview-contenuto"></div>
+  <div class="btn-row">
+    <button class="btn-sec" onclick="rigenera()">🔄 Rigenera</button>
+    <button class="btn-sec" onclick="pubblicaSuSupabase()">☁️ Pubblica su Supabase</button>
+  </div>
+  <p class="status" id="status-pub"></p>
+  <div id="link-result" style="display:none">
+    <div class="link-box">
+      <a id="pub-link" href="#" target="_blank" style="flex:1;color:#15803d;word-break:break-all;text-decoration:underline"></a>
+      <button onclick="copiaLink()" title="Copia link" style="background:none;border:none;cursor:pointer;font-size:16px;flex-shrink:0">📋</button>
+    </div>
+    <p style="font-size:11px;color:#999;margin-top:6px">Incolla questo link in Moodle come risorsa URL</p>
+  </div>
+</div>
+
+<div class="card" id="archivio-card">
+  <button class="btn-primary" onclick="mostraArchivio()">📚 Mostra esercizi pubblicati</button>
+  <div id="archivio-list" style="margin-top:1rem;display:none"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://tageubqfxkshigrriiyw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44';
+const PROXY_URL = 'https://matching-proxy.pietro-dipalo.workers.dev';
+
+let modalita = 'testo';
+let contenutoGenerato = null;
+let titoloQuiz = '';
+
+function switchModalita(m, el) {
+  modalita = m;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const lbl = document.getElementById('label-argomento');
+  const ta = document.getElementById('argomento');
+  if (m === 'testo') {
+    lbl.textContent = 'Argomento o testo di riferimento';
+    ta.placeholder = 'Inserisci l\'argomento o incolla il testo...';
+  } else {
+    lbl.textContent = 'Argomento o forma verbale da esercitare';
+    ta.placeholder = 'Es: "congiuntivo presente dei verbi irregolari" oppure "cause della Prima Guerra Mondiale"';
+  }
+}
+
+async function genera() {
+  const argomento = document.getElementById('argomento').value.trim();
+  const tipo = document.getElementById('tipo').value;
+  const lingua = document.getElementById('lingua').value;
+  const btn = document.getElementById('genera-btn');
+  const status = document.getElementById('status-genera');
+
+  if (!argomento) { status.textContent = 'Inserisci un argomento.'; status.className = 'status err'; return; }
+
+  btn.disabled = true;
+  status.textContent = 'Generazione in corso...';
+  status.className = 'status';
+
+  const systemPrompt = modalita === 'testo'
+    ? `Sei un esperto di didattica. Genera un esercizio "Completa la Frase" con UN testo di circa 80-120 parole che abbia esattamente 5 parole chiave rimosse (i buchi). Per ogni buco fornisci 3 opzioni: 1 corretta e 2 distrattori plausibili. Tipologia: ${tipo}. Lingua: ${lingua}. Rispondi SOLO con JSON valido senza markdown. Formato esatto:
+{"titolo":"max 5 parole","modalita":"testo","segmenti":[{"tipo":"testo","valore":"testo prima del buco"},{"tipo":"buco","id":1,"corretta":"parola","opzioni":["parola","distrattore1","distrattore2"]},{"tipo":"testo","valore":"testo dopo"},...]}`
+    : `Sei un esperto di didattica. Genera 5 frasi indipendenti, ciascuna con esattamente 1 buco. Per ogni buco fornisci 3 opzioni: 1 corretta e 2 distrattori plausibili. Tipologia: ${tipo}. Lingua: ${lingua}. Rispondi SOLO con JSON valido senza markdown. Formato esatto:
+{"titolo":"max 5 parole","modalita":"frasi","frasi":[{"id":1,"segmenti":[{"tipo":"testo","valore":"inizio frase"},{"tipo":"buco","id":1,"corretta":"parola","opzioni":["parola","distrattore1","distrattore2"]},{"tipo":"testo","valore":"fine frase"}]},{"id":2,...},{"id":3,...},{"id":4,...},{"id":5,...}]}`;
+
+  try {
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: [{ type: 'text', text: `Argomento: ${argomento}` }] }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    contenutoGenerato = parsed;
+    titoloQuiz = parsed.titolo || argomento.slice(0, 50);
+    mostraAnteprima();
+    status.textContent = '✓ Esercizio generato.';
+    status.className = 'status ok';
+  } catch(e) {
+    status.textContent = 'Errore nella generazione. Riprova.';
+    status.className = 'status err';
+  }
+  btn.disabled = false;
+}
+
+function rigenera() {
+  document.getElementById('preview-card').style.display = 'none';
+  contenutoGenerato = null;
+  genera();
+}
+
+function mostraAnteprima() {
+  const div = document.getElementById('preview-contenuto');
+  div.innerHTML = '';
+
+  if (contenutoGenerato.modalita === 'testo') {
+    const p = document.createElement('div');
+    p.className = 'preview-testo';
+    contenutoGenerato.segmenti.forEach(seg => {
+      if (seg.tipo === 'testo') {
+        p.appendChild(document.createTextNode(seg.valore));
+      } else {
+        const span = document.createElement('span');
+        span.className = 'buco';
+        span.textContent = seg.corretta;
+        p.appendChild(span);
+        // mostra opzioni sotto
+        const opz = document.createElement('div');
+        opz.className = 'opzioni-row';
+        seg.opzioni.forEach(o => {
+          const s = document.createElement('span');
+          s.className = 'opz' + (o === seg.corretta ? ' corretta' : '');
+          s.textContent = o;
+          opz.appendChild(s);
+        });
+        p.appendChild(opz);
+      }
+    });
+    div.appendChild(p);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'frasi-list';
+    contenutoGenerato.frasi.forEach((frase, fi) => {
+      const item = document.createElement('div');
+      item.className = 'frase-item';
+      const num = document.createElement('strong');
+      num.textContent = (fi + 1) + '. ';
+      item.appendChild(num);
+      frase.segmenti.forEach(seg => {
+        if (seg.tipo === 'testo') {
+          item.appendChild(document.createTextNode(seg.valore));
+        } else {
+          const span = document.createElement('span');
+          span.className = 'buco';
+          span.textContent = seg.corretta;
+          item.appendChild(span);
+          const opz = document.createElement('div');
+          opz.className = 'opzioni-row';
+          seg.opzioni.forEach(o => {
+            const s = document.createElement('span');
+            s.className = 'opz' + (o === seg.corretta ? ' corretta' : '');
+            s.textContent = o;
+            opz.appendChild(s);
+          });
+          item.appendChild(opz);
+        }
+      });
+      list.appendChild(item);
+    });
+    div.appendChild(list);
+  }
+
+  document.getElementById('preview-card').style.display = 'block';
+  document.getElementById('link-result').style.display = 'none';
+  document.getElementById('status-pub').textContent = '';
+}
+
+function generaSlug() {
+  return titoloQuiz.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '-' + Date.now().toString(36);
+}
+
+async function pubblicaSuSupabase() {
+  if (!contenutoGenerato) return;
+  const status = document.getElementById('status-pub');
+  status.textContent = 'Pubblicazione in corso...';
+  status.className = 'status';
+  const slug = generaSlug();
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/CompletaFrase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        titolo: titoloQuiz,
+        slug: slug,
+        modalita: contenutoGenerato.modalita,
+        contenuto: contenutoGenerato
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const link = 'https://giochi.istitutojanus.it/completa-frase/' + slug;
+    const el = document.getElementById('pub-link');
+    el.textContent = link;
+    el.href = link;
+    document.getElementById('link-result').style.display = 'block';
+    status.textContent = '✓ Pubblicato con successo!';
+    status.className = 'status ok';
+  } catch(e) {
+    status.textContent = 'Errore: ' + e.message;
+    status.className = 'status err';
+  }
+}
+
+function copiaLink() {
+  navigator.clipboard.writeText(document.getElementById('pub-link').textContent);
+}
+
+async function mostraArchivio() {
+  const list = document.getElementById('archivio-list');
+  list.style.display = 'block';
+  list.innerHTML = '<p style="font-size:13px;color:#666">Caricamento...</p>';
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/CompletaFrase?select=titolo,slug,modalita,created_at&order=created_at.desc', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const data = await res.json();
+    if (!data.length) { list.innerHTML = '<p style="font-size:13px;color:#666">Nessun esercizio pubblicato.</p>'; return; }
+    list.innerHTML = data.map(q => {
+      const link = 'https://giochi.istitutojanus.it/completa-frase/' + q.slug;
+      const data_it = new Date(q.created_at).toLocaleDateString('it-IT');
+      const badge = q.modalita === 'testo' ? '📄 Testo' : '📝 Frasi';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <div>
+          <div style="font-size:13px;font-weight:500">${q.titolo} <span style="font-size:11px;color:#aaa">${badge}</span></div>
+          <div style="font-size:11px;color:#999">${data_it}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="${link}" target="_blank" style="font-size:12px;color:#3b82f6">Apri</a>
+          <button onclick="navigator.clipboard.writeText('${link}')" style="background:none;border:none;cursor:pointer;font-size:14px" title="Copia link">📋</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<p style="font-size:13px;color:#dc2626">Errore nel caricamento.</p>';
+  }
+}
+</script>
+</body>
+</html>
