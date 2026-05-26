@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Completa la Frase — Istituto Janus</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:1rem}
+.header{text-align:center;margin-bottom:1.5rem;padding-top:1rem}
+h1{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.subtitle{font-size:13px;color:#666}
+.loading{text-align:center;padding:3rem;color:#666;font-size:15px}
+.error{text-align:center;padding:3rem;color:#dc2626;font-size:15px}
+.game{width:100%;max-width:640px}
+/* Modalità testo */
+.testo-block{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem;font-size:15px;line-height:2.2;margin-bottom:1rem}
+/* Modalità frasi */
+.frasi-list{display:flex;flex-direction:column;gap:12px;margin-bottom:1rem}
+.frase-item{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1rem;font-size:15px;line-height:2.2}
+/* Select inline */
+select.buco{font-size:14px;padding:3px 6px;border:2px solid #3b82f6;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-family:inherit;margin:0 3px}
+select.buco.corretta{border-color:#16a34a;background:#f0fdf4;color:#15803d}
+select.buco.sbagliata{border-color:#dc2626;background:#fef2f2;color:#b91c1c}
+/* Score */
+.score-bar{width:100%;max-width:640px;background:#e5e7eb;border-radius:999px;height:8px;margin-bottom:0.5rem}
+.score-fill{height:8px;border-radius:999px;background:#3b82f6;transition:width 0.3s}
+.score-text{font-size:12px;color:#666;margin-bottom:1rem}
+/* Bottone conferma */
+.btn-primary{width:100%;max-width:640px;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:1rem}
+.btn-primary:hover{background:#2563eb}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+/* Result */
+.result-screen{display:none;text-align:center;padding:2rem;max-width:400px}
+.result-screen h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.percent{font-size:48px;font-weight:700;margin:1rem 0}
+.percent.high{color:#16a34a}
+.percent.mid{color:#d97706}
+.percent.low{color:#dc2626}
+.result-detail{font-size:13px;color:#666;margin-bottom:1.5rem}
+.btn-restart{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer}
+.logo{font-size:12px;color:#aaa;margin-top:2rem}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1 id="titolo">Caricamento...</h1>
+  <p class="subtitle">Seleziona la parola corretta per ogni spazio</p>
+</div>
+
+<div id="loading" class="loading">Caricamento esercizio...</div>
+<div id="error" class="error" style="display:none">Esercizio non trovato. Verifica il link.</div>
+
+<div class="score-bar" style="display:none" id="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+<p class="score-text" id="score-text" style="display:none"></p>
+
+<div id="game" class="game" style="display:none"></div>
+
+<button class="btn-primary" id="btn-conferma" style="display:none" onclick="conferma()">✓ Conferma risposte</button>
+
+<div class="result-screen" id="result-screen">
+  <h2>Completato!</h2>
+  <div class="percent" id="result-pct"></div>
+  <p class="result-detail" id="result-detail"></p>
+  <button class="btn-restart" onclick="restart()">Ricomincia</button>
+</div>
+
+<p class="logo">Istituto Janus — Giochi Didattici</p>
+
+<script>
+const SUPABASE_URL = 'https://tageubqfxkshigrriiyw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44';
+
+let contenuto = null;
+let totaleBuchi = 0;
+
+function getSlug() { return window.__SLUG__ || ''; }
+
+async function caricaEsercizio() {
+  const slug = getSlug();
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/CompletaFrase?slug=eq.${slug}&select=titolo,modalita,contenuto`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = await res.json();
+    if (!data || data.length === 0) throw new Error('not found');
+    contenuto = data[0].contenuto;
+    document.getElementById('titolo').textContent = data[0].titolo;
+    document.title = data[0].titolo + ' — Completa la Frase';
+    document.getElementById('loading').style.display = 'none';
+    renderEsercizio();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+  }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function creaSelect(seg) {
+  const sel = document.createElement('select');
+  sel.className = 'buco';
+  sel.dataset.corretta = seg.corretta;
+  sel.dataset.bucoid = seg.id;
+  const opzMescolate = shuffle(seg.opzioni);
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '…';
+  sel.appendChild(placeholder);
+  opzMescolate.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o;
+    opt.textContent = o;
+    sel.appendChild(opt);
+  });
+  totaleBuchi++;
+  return sel;
+}
+
+function renderSegmenti(container, segmenti) {
+  segmenti.forEach(seg => {
+    if (seg.tipo === 'testo') {
+      container.appendChild(document.createTextNode(seg.valore));
+    } else {
+      container.appendChild(creaSelect(seg));
+    }
+  });
+}
+
+function renderEsercizio() {
+  totaleBuchi = 0;
+  const game = document.getElementById('game');
+  game.innerHTML = '';
+
+  if (contenuto.modalita === 'testo') {
+    const block = document.createElement('div');
+    block.className = 'testo-block';
+    renderSegmenti(block, contenuto.segmenti);
+    game.appendChild(block);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'frasi-list';
+    contenuto.frasi.forEach((frase, fi) => {
+      const item = document.createElement('div');
+      item.className = 'frase-item';
+      const num = document.createElement('strong');
+      num.textContent = (fi + 1) + '. ';
+      item.appendChild(num);
+      renderSegmenti(item, frase.segmenti);
+      list.appendChild(item);
+    });
+    game.appendChild(list);
+  }
+
+  document.getElementById('game').style.display = 'block';
+  document.getElementById('btn-conferma').style.display = 'block';
+  document.getElementById('score-bar').style.display = 'block';
+  document.getElementById('score-text').style.display = 'block';
+  document.getElementById('score-text').textContent = `Risposte corrette: 0 / ${totaleBuchi}`;
+}
+
+function conferma() {
+  const selects = document.querySelectorAll('select.buco');
+  let corrette = 0;
+  let tutte = true;
+
+  selects.forEach(sel => {
+    if (!sel.value) { tutte = false; return; }
+    if (sel.value === sel.dataset.corretta) {
+      sel.classList.add('corretta');
+      sel.classList.remove('sbagliata');
+      corrette++;
+    } else {
+      sel.classList.add('sbagliata');
+      sel.classList.remove('corretta');
+    }
+    sel.disabled = true;
+  });
+
+  if (!tutte) {
+    // riabilita le non compilate
+    selects.forEach(sel => { if (!sel.value) sel.disabled = false; });
+    alert('Completa tutti gli spazi prima di confermare.');
+    return;
+  }
+
+  const pct = Math.round((corrette / totaleBuchi) * 100);
+  document.getElementById('score-fill').style.width = pct + '%';
+  document.getElementById('score-text').textContent = `Risposte corrette: ${corrette} / ${totaleBuchi}`;
+  document.getElementById('btn-conferma').style.display = 'none';
+
+  setTimeout(() => {
+    document.getElementById('game').style.display = 'none';
+    document.getElementById('score-bar').style.display = 'none';
+    document.getElementById('score-text').style.display = 'none';
+    const rs = document.getElementById('result-screen');
+    rs.style.display = 'block';
+    const p = document.getElementById('result-pct');
+    p.textContent = pct + '%';
+    p.className = 'percent ' + (pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low');
+    document.getElementById('result-detail').textContent = `Hai risposto correttamente a ${corrette} domande su ${totaleBuchi}.`;
+  }, 1200);
+}
+
+function restart() {
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('score-fill').style.width = '0%';
+  renderEsercizio();
+}
+
+caricaEsercizio();
+</script>
+</body>
+</html>
