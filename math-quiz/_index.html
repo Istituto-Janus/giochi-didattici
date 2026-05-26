@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Math Quiz</title>
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -137,24 +141,56 @@
 
     .svolgimento {
       margin-top: 14px;
-      padding: 14px 16px;
+      padding: 16px 18px;
       background: #fffbeb;
       border: 2px solid #f6e05e;
       border-radius: 10px;
-      font-size: 0.92rem;
+      font-size: 0.93rem;
       color: #744210;
       display: none;
-      line-height: 1.6;
+      line-height: 1.8;
     }
 
-    .svolgimento strong {
+    .svolgimento .sv-titolo {
       display: block;
-      margin-bottom: 6px;
-      font-size: 0.88rem;
+      margin-bottom: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
       color: #975a16;
     }
+
+    .sv-passo {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .sv-passo:last-child { margin-bottom: 0; }
+
+    .sv-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: #f6e05e;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #744210;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sv-testo {
+      flex: 1;
+      line-height: 1.7;
+    }
+
+    /* KaTeX overrides per colori */
+    .svolgimento .katex { color: #744210; }
 
     .next-btn {
       margin-top: 24px;
@@ -173,7 +209,6 @@
 
     .next-btn:hover { background: #4338ca; }
 
-    /* Schermata risultato finale */
     .result-screen {
       text-align: center;
       display: none;
@@ -243,7 +278,6 @@
   <div id="loading" class="loading">Caricamento quiz...</div>
   <div id="error" class="error-msg" style="display:none"></div>
 
-  <!-- Quiz attivo -->
   <div id="quiz-wrap" style="display:none">
     <div class="header">
       <h1 id="quiz-title"></h1>
@@ -256,11 +290,13 @@
     <div class="question-text" id="question-text"></div>
     <div class="options" id="options"></div>
     <div class="feedback" id="feedback"></div>
-    <div class="svolgimento" id="svolgimento"><strong>📐 Svolgimento</strong><span id="svolgimento-testo"></span></div>
+    <div class="svolgimento" id="svolgimento">
+      <span class="sv-titolo">📐 Svolgimento</span>
+      <div id="svolgimento-passi"></div>
+    </div>
     <button class="next-btn" id="next-btn">Prossima domanda →</button>
   </div>
 
-  <!-- Risultato finale -->
   <div id="result-screen" class="result-screen">
     <div class="score-circle">
       <span class="score-number" id="score-number"></span>
@@ -281,6 +317,22 @@
   let domande = [];
   let correnti = 0;
   let punteggio = 0;
+  let katexPronto = false;
+
+  // Aspetta che KaTeX sia caricato
+  window.addEventListener('load', () => { katexPronto = true; });
+
+  function renderKatex(elemento) {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(elemento, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$",  right: "$",  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  }
 
   async function caricaQuiz() {
     try {
@@ -322,7 +374,7 @@
 
     const sv = document.getElementById("svolgimento");
     sv.style.display = "none";
-    document.getElementById("svolgimento-testo").textContent = "";
+    document.getElementById("svolgimento-passi").innerHTML = "";
 
     const nextBtn = document.getElementById("next-btn");
     nextBtn.style.display = "none";
@@ -340,13 +392,42 @@
     });
   }
 
+  function mostraSvolgimento(svolgimento) {
+    const sv = document.getElementById("svolgimento");
+    const passiEl = document.getElementById("svolgimento-passi");
+    passiEl.innerHTML = "";
+
+    // Supporta sia array (nuovo formato) che stringa con | (vecchio formato)
+    let passi = [];
+    if (Array.isArray(svolgimento)) {
+      passi = svolgimento;
+    } else if (typeof svolgimento === 'string') {
+      passi = svolgimento.split('|').map(p => p.trim()).filter(Boolean);
+    }
+
+    if (!passi.length) return;
+
+    passi.forEach((passo, i) => {
+      const div = document.createElement("div");
+      div.className = "sv-passo";
+      div.innerHTML = `
+        <span class="sv-num">${i + 1}</span>
+        <span class="sv-testo">${passo}</span>
+      `;
+      passiEl.appendChild(div);
+    });
+
+    sv.style.display = "block";
+
+    // Renderizza KaTeX sui passi appena inseriti
+    renderKatex(passiEl);
+  }
+
   function rispondi(scelta, corretta) {
     const btns = document.querySelectorAll(".option-btn");
     btns.forEach(b => b.disabled = true);
 
     const fb = document.getElementById("feedback");
-    const sv = document.getElementById("svolgimento");
-    const svTesto = document.getElementById("svolgimento-testo");
 
     if (scelta === corretta) {
       btns[scelta].classList.add("correct");
@@ -360,12 +441,8 @@
       fb.textContent = `✗ Sbagliato. La risposta corretta era: "${domande[correnti].opzioni[corretta]}"`;
     }
 
-    // Mostra svolgimento se disponibile
     const svolgimento = domande[correnti].svolgimento;
-    if (svolgimento) {
-      svTesto.textContent = svolgimento;
-      sv.style.display = "block";
-    }
+    if (svolgimento) mostraSvolgimento(svolgimento);
 
     document.getElementById("next-btn").style.display = "block";
   }
@@ -394,7 +471,7 @@
       msg = "Ottima padronanza degli argomenti.";
     } else if (perc >= 0.7) {
       titolo = "Bravo! 👍";
-      msg = "Buona preparazione, ripassia i punti mancanti.";
+      msg = "Buona preparazione, ripassa i punti mancanti.";
     } else if (perc >= 0.5) {
       titolo = "Sufficiente";
       msg = "Ci siamo quasi. Riprova dopo aver ripassato.";
