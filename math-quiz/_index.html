@@ -135,6 +135,27 @@
       display: block;
     }
 
+    .svolgimento {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: #fffbeb;
+      border: 2px solid #f6e05e;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      color: #744210;
+      display: none;
+      line-height: 1.6;
+    }
+
+    .svolgimento strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #975a16;
+    }
+
     .next-btn {
       margin-top: 24px;
       width: 100%;
@@ -235,6 +256,7 @@
     <div class="question-text" id="question-text"></div>
     <div class="options" id="options"></div>
     <div class="feedback" id="feedback"></div>
+    <div class="svolgimento" id="svolgimento"><strong>📐 Svolgimento</strong><span id="svolgimento-testo"></span></div>
     <button class="next-btn" id="next-btn">Prossima domanda →</button>
   </div>
 
@@ -298,6 +320,10 @@
     fb.className = "feedback";
     fb.textContent = "";
 
+    const sv = document.getElementById("svolgimento");
+    sv.style.display = "none";
+    document.getElementById("svolgimento-testo").textContent = "";
+
     const nextBtn = document.getElementById("next-btn");
     nextBtn.style.display = "none";
     nextBtn.textContent = correnti + 1 < totale ? "Prossima domanda →" : "Vedi risultato";
@@ -319,6 +345,8 @@
     btns.forEach(b => b.disabled = true);
 
     const fb = document.getElementById("feedback");
+    const sv = document.getElementById("svolgimento");
+    const svTesto = document.getElementById("svolgimento-testo");
 
     if (scelta === corretta) {
       btns[scelta].classList.add("correct");
@@ -330,6 +358,13 @@
       btns[corretta].classList.add("reveal-correct");
       fb.className = "feedback wrong";
       fb.textContent = `✗ Sbagliato. La risposta corretta era: "${domande[correnti].opzioni[corretta]}"`;
+    }
+
+    // Mostra svolgimento se disponibile
+    const svolgimento = domande[correnti].svolgimento;
+    if (svolgimento) {
+      svTesto.textContent = svolgimento;
+      sv.style.display = "block";
     }
 
     document.getElementById("next-btn").style.display = "block";
