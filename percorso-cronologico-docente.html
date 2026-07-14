@@ -100,6 +100,23 @@
     padding:10px 14px; border-radius:6px; font-size:13px; margin-top:12px; }
 
   .hint{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+
+  /* ---------- archivio percorsi ---------- */
+  .archivio-head{ display:flex; align-items:center; justify-content:space-between; }
+  .archivio-list{ margin-top:14px; }
+  .archivio-item{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:10px;
+    background:#fdfcf8;
+  }
+  .archivio-item .arc-titolo{ font-weight:600; flex:1 1 220px; min-width:0; }
+  .archivio-item .arc-data{ font-size:11.5px; color:var(--ink-soft); flex:0 0 auto; }
+  .archivio-item .arc-link{
+    font-family:monospace; font-size:11.5px; color:var(--navy); word-break:break-all;
+    flex:1 1 100%; background:#eef2f5; padding:6px 8px; border-radius:5px; display:none;
+  }
+  .archivio-item .arc-link.show{ display:block; }
+  .archivio-empty{ color:var(--ink-soft); font-size:13.5px; text-align:center; padding:20px; }
 </style>
 </head>
 <body>
@@ -110,6 +127,17 @@
 </header>
 
 <main>
+
+  <!-- ARCHIVIO PERCORSI GIA' CREATI -->
+  <div class="card" id="step-archivio">
+    <div class="archivio-head">
+      <h2>Percorsi già creati</h2>
+      <button class="btn-ghost btn-small" id="btn-aggiorna-archivio">Aggiorna elenco</button>
+    </div>
+    <div class="archivio-list" id="archivio-list">
+      <p class="archivio-empty">Caricamento...</p>
+    </div>
+  </div>
 
   <!-- STEP 1: GENERAZIONE -->
   <div class="card" id="step-input">
@@ -390,6 +418,69 @@ document.getElementById('btn-aggiungi-evento').addEventListener('click', () => {
 });
 
 /* ============================================================
+   ARCHIVIO PERCORSI GIA' CREATI
+   ============================================================ */
+async function loadArchivio(){
+  const list = document.getElementById('archivio-list');
+  list.innerHTML = '<p class="archivio-empty">Caricamento...</p>';
+
+  const { data, error } = await supabaseClient
+    .from('PercorsoCronologico')
+    .select('id, slug, titolo, stato, created_at')
+    .order('created_at', { ascending: false });
+
+  if(error){
+    list.innerHTML = `<p class="archivio-empty">Errore nel caricamento: ${error.message}</p>`;
+    return;
+  }
+
+  if(!data || data.length === 0){
+    list.innerHTML = '<p class="archivio-empty">Nessun percorso creato finora.</p>';
+    return;
+  }
+
+  list.innerHTML = data.map(rec => {
+    const dataLeggibile = new Date(rec.created_at).toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+    const statusClass = rec.stato === 'pubblicato' ? 'status-pubblicato' : 'status-bozza';
+    const link = `${STUDENT_PLAYER_BASE_URL}/${rec.slug}`;
+    const azione = rec.stato === 'pubblicato'
+      ? `<button class="btn-ghost btn-small" data-action="copia" data-link="${link}">Copia link</button>`
+      : `<button class="btn-gold btn-small" data-action="pubblica" data-id="${rec.id}">Pubblica</button>`;
+    return `
+      <div class="archivio-item">
+        <span class="arc-titolo">${rec.titolo}</span>
+        <span class="status-pill ${statusClass}">${rec.stato}</span>
+        <span class="arc-data">${dataLeggibile}</span>
+        ${azione}
+        ${rec.stato === 'pubblicato' ? `<div class="arc-link show">${link}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('button[data-action="copia"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.link);
+      btn.textContent = 'Copiato ✓';
+      setTimeout(() => { btn.textContent = 'Copia link'; }, 1500);
+    });
+  });
+
+  list.querySelectorAll('button[data-action="pubblica"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const { error } = await supabaseClient
+        .from('PercorsoCronologico')
+        .update({ stato: 'pubblicato' })
+        .eq('id', btn.dataset.id);
+      if(error){ alert('Errore nella pubblicazione: ' + error.message); return; }
+      loadArchivio();
+    });
+  });
+}
+
+document.getElementById('btn-aggiorna-archivio').addEventListener('click', loadArchivio);
+loadArchivio();
+
+/* ============================================================
    SALVATAGGIO SU SUPABASE (come bozza)
    ============================================================ */
 function generaSlug(titolo){
@@ -453,6 +544,7 @@ document.getElementById('btn-salva-bozza').addEventListener('click', async () =>
   document.getElementById('done-titolo').textContent = titolo;
   document.getElementById('done-slug').textContent = `${STUDENT_PLAYER_BASE_URL}/${slug}`;
   document.getElementById('step-done').style.display = 'block';
+  loadArchivio();
 });
 
 /* ============================================================
@@ -473,6 +565,7 @@ document.getElementById('btn-pubblica').addEventListener('click', async () => {
   document.getElementById('done-status').className = 'status-pill status-pubblicato';
   document.getElementById('btn-pubblica').disabled = true;
   document.getElementById('btn-pubblica').textContent = 'Pubblicato ✓';
+  loadArchivio();
 });
 
 document.getElementById('btn-nuovo').addEventListener('click', () => {
