@@ -1,0 +1,9 @@
+Recovered lexical data: Hunspell dictionaries from https://github.com/wooorm/dictionaries
+Italian: PLIO / Italian Writing Aids 4.2, GPL-3.0.
+English: SCOWL/Aspell, original permissive/BSD license notices retained in sources/en.LICENSE.
+Spanish: RLA-ES 2.8, GPL-3.0-or-later selected from GPL/LGPL/MPL options.
+French: Grammalecte classique 7.5, MPL-2.0.
+German: igerman98 20161207, GPL-3.0 selected from GPLv2/GPLv3 options.
+Full notices are retained in lexicons/sources/*.LICENSE.
+The original aff/dic inputs and build scripts remain in the disconnected workspace and must be recovered before complete redistribution of the derived dictionaries. This is an emergency recovery snapshot, not a completed release.
+Original application source: GPL-3.0.
