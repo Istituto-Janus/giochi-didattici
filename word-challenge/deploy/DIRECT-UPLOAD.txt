@@ -1,0 +1,12 @@
+Janus Word Challenge — Cloudflare Pages Direct Upload
+
+1. Scaricare frontend.zip di questa cartella. Contiene soltanto i file pubblici, con index.html nella radice.
+2. Nel dashboard Cloudflare dell'account Istituto Janus aprire Workers & Pages.
+3. Selezionare Create application > Get started > Drag and drop your files.
+4. Creare un NUOVO progetto janus-word-challenge, caricare frontend.zip e selezionare Deploy site. Non distribuire sui progetti dei giochi esistenti.
+5. Conservare l'URL effettivamente restituito da Cloudflare. L'area docente è la radice di quell'URL.
+
+Nessun comando di build e nessuna nuova chiave necessaria. Il backend Supabase è già configurato nel frontend.
+Non caricare l'intero repository: usare soltanto frontend.zip.
+Direct Upload non può essere convertito successivamente in Git integration nello stesso progetto.
+Documentazione: https://developers.cloudflare.com/pages/get-started/direct-upload/
