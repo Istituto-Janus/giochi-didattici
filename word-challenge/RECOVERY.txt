@@ -1,6 +1,5 @@
-JWC workspace recovery completed — 2026-10-13
-The complete original local commit 15a4ba5381ba094dc9fd0063fe2fb90ba847fb1b has been recovered and merged with the emergency GitHub snapshot.
-Frontend, localized manual, tests, lexical inputs and build scripts are now included.
-No application code was changed during recovery. Original license files were preserved when reconciling newline-only merge differences.
-Supabase API janus-word-challenge version 2 remains active. Previously completed live API and desktop/mobile browser tests passed; no repeated test suite was run during recovery.
-Cloudflare publication remains dependent on access to api.cloudflare.com in the effective runtime network policy.
+JWC — recupero completato, 13 ottobre 2026.
+Frontend, backend, lessici originali, manuale e test sono conservati sul branch jwc-word-challenge.
+Versione applicativa approvata: 025aa4b68687c4adef544cc3e793c721cb9505be.
+Produzione confermata dalla Direzione: https://janus-word-challenge.pages.dev
+Vedere README.md e docs/CHIUSURA.md per lo stato aggiornato.

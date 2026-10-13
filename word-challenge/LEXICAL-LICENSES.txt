@@ -5,5 +5,5 @@ Spanish: RLA-ES 2.8, GPL-3.0-or-later selected from GPL/LGPL/MPL options.
 French: Grammalecte classique 7.5, MPL-2.0.
 German: igerman98 20161207, GPL-3.0 selected from GPLv2/GPLv3 options.
 Full notices are retained in lexicons/sources/*.LICENSE.
-The original aff/dic inputs and build scripts remain in the disconnected workspace and must be recovered before complete redistribution of the derived dictionaries. This is an emergency recovery snapshot, not a completed release.
+The original aff/dic inputs, build scripts, frontend, manual and tests have been recovered and are included on this branch. Lexical source notices and licenses are retained.
 Original application source: GPL-3.0.

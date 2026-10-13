@@ -1,29 +1,69 @@
 # Janus Word Challenge
 
-Applicazione didattica nelle cinque lingue IT, EN, ES, FR, DE. Frontend statico Cloudflare Pages, API Supabase Edge Function e database del progetto **Giochi Janus** (`tageubqfxkshigrriiyw`). Nessuna modifica ai giochi esistenti.
+Applicazione didattica Janus per comporre parole con sei lettere nelle lingue italiano, inglese, spagnolo, francese e tedesco.
 
-## Struttura
+- Produzione: https://janus-word-challenge.pages.dev
+- Manuale utente: https://janus-word-challenge.pages.dev/manuale.html
+- Repository: https://github.com/Istituto-Janus/giochi-didattici
+- Branch: `jwc-word-challenge`
+- Versione applicativa approvata: `025aa4b68687c4adef544cc3e793c721cb9505be`; frontend e backend sono identici alla versione originale `15a4ba5381ba094dc9fd0063fe2fb90ba847fb1b`.
+- Il commit dell'aggiornamento documentale è consultabile nella cronologia del branch. Non implica un nuovo deploy.
 
-- `public/`: unico contenuto da pubblicare su Pages. Non pubblicare la cartella superiore, che contiene dizionari, codice server e documentazione tecnica.
-- `edge.js`: API con validazione lessicale, capability docente/sessione e chiamata RPC con chiave service disponibile esclusivamente nel runtime Supabase.
-- `schema.sql`: installazione completa su uno schema JWC nuovo; **non rieseguire** su un'installazione esistente. Le migrazioni applicate sono registrate in Supabase.
-- `lexicons/`: lessici finiti e catalogo automatico. `sources/` conserva fonti Hunspell, copyright e licenze.
-- `scripts/`: espansione affissi (massimo tre passaggi) e verifica libhunspell, poi catalogo automatico. Richiede Python 3, libhunspell 1.7 e Node 24; nessuna dipendenza npm runtime.
-- `tests/`: validazione Unicode, ripetizioni, punteggi, lessici, forme flesse, cataloghi e protezione payload.
+La Direzione ha confermato il 13 ottobre 2026 la pubblicazione manuale su Cloudflare Pages e il collaudo funzionale positivo. Le verifiche finali sono descritte in [docs/CHIUSURA.md](docs/CHIUSURA.md).
 
-## Accesso e sicurezza effettiva
+## Architettura
 
-L'area docente è pubblica, senza account. Un token casuale di 256 bit viene creato dal server e conservato in localStorage; il database conserva solo SHA-256. Archivio e registro sono accessibili soltanto al possessore di quel token, per i propri giochi. La chiave può essere copiata/ripristinata: non identifica il docente e non sostituisce un'autenticazione istituzionale. La perdita della chiave richiede intervento amministrativo; non esiste recupero pubblico. Non condividere mai chiavi di gestione o sessione nei link.
+Il frontend statico su Cloudflare Pages invia richieste alla funzione server in Supabase. Il database conserva giochi, sessioni e risultati. Il server valida le parole contro lessici Hunspell versionati, aggiorna il punteggio e applica le scadenze. La classifica è condivisa per gioco e conserva il miglior risultato concluso per nickname.
 
-Gli studenti sono identificati dal nickname, normalizzato NFC e senza distinzione maiuscole/minuscole. Il blocco dei tentativi è per nickname, non per persona; sono possibili impersonazioni. La classifica mantiene il miglior risultato concluso per nickname e mostra i primi 100. I pareggi sono ordinati per nickname. Il registro conserva tutti i tentativi conclusi ed è paginato a 100 righe.
+La chiave pubblica Supabase nel frontend è intenzionale e non abilita operazioni amministrative. Le credenziali riservate rimangono nel runtime server. Le operazioni docente richiedono una chiave di gestione e sono limitate ai giochi appartenenti alla stessa chiave; l'accesso diretto alle tabelle e alle funzioni privilegiate è negato ai ruoli pubblici. Questo accesso libero non verifica l'identità istituzionale del docente.
 
-Le tabelle sono nello schema non esposto `jwc_private`, con RLS attiva e senza policy pubbliche. `public.jwc_dispatch` è SECURITY INVOKER ed eseguibile soltanto da service_role. La funzione Edge richiede il JWT anon pubblico già usato da Janus; questa chiave NON autentica il docente. Capability e validazione dell'operazione sono eseguite nel corpo dell'API. La chiave service non è nel repository, nei file pubblici o in Cloudflare.
+## File
 
-Ogni parola viene confrontata con il set di soluzioni del gioco. Score, duplicati, timer e chiusura sono calcolati nel database con lock di sessione. Il punteggio inviato dallo studente è rifiutato. Nessuna soluzione viene inviata nelle operazioni pubbliche `game`, `start`, `state` o `word`. L'operazione `solutions` richiede una sessione conclusa. Le anteprime docente sono libere: un utente determinato può ricostruire le soluzioni dalle lettere; non è un sistema anti-cheating assoluto.
+- `public/`: asset del sito e manuale nelle cinque lingue.
+- `edge.js`, `core.js`: backend e regole di validazione.
+- `schema.sql`: riferimento di installazione su uno schema nuovo; non rieseguirlo su un'installazione esistente.
+- `lexicons/`: lessici, cataloghi, manifest degli hash, input originali e licenze.
+- `scripts/`: generazione verificata dei lessici e dei cataloghi.
+- `tests/`: controlli automatici e script del precedente collaudo.
+- `deploy/frontend.zip`: pacchetto statico della versione approvata; soltanto gli asset pubblici.
 
-Rate limit persistente: 30 richieste/minuto per IP e operazione create/delete/rename/start, 180 per le altre; limite globale 100 create e 3000 per altra operazione/minuto. Il contatore IP usa 4096 slot hash per operazione, con possibili collisioni conservative. L'IP è fornito dagli header del gateway; limiti globali e capability restano necessari anche in presenza di header falsificati. Massimo 200 giochi attivi per chiave. Nessun cambio di piano o servizio a pagamento.
+## Docenti e studenti
 
-L'eliminazione è **logica**: disattiva link, gestione e accesso ai risultati; i record restano in Supabase fino alla cancellazione amministrativa. Non è presente un job di cancellazione fisica. Il timer è server-side: una sessione scaduta viene conclusa alla prima richiesta successiva. Una partita abbandonata senza più richieste non compare in classifica finché non viene richiamata/chiusa. Le sessioni senza timer scadono dopo 24 ore. I punti accettati sono già salvati e la ricarica può riprendere la sessione nello stesso browser.
+Il docente sceglie la lingua, inserisce o genera le sei lettere, imposta titolo, obiettivo indicativo, timer e nuovi tentativi, controlla l'anteprima e pubblica un gioco alla volta. Il suo archivio offre apertura/copia link, modifica titolo, eliminazione logica e registro dei risultati.
+
+Lo studente inserisce un nickname, compone parole da 3 a 6 lettere, riceve la verifica immediata e accumula 10, 20, 30 o 50 punti. Ogni lettera si usa solo quante volte compare. Le parole trovate sono raggruppate per lunghezza. La classifica appare prima e dopo la partita; le soluzioni sono disponibili nella schermata finale.
+
+## Chiave di gestione
+
+Ogni browser riceve automaticamente una chiave casuale, senza account. Copiarla dalla sezione “Chiave di gestione” e conservarla privatamente. “Ripristina chiave” permette di riaprire il proprio archivio da un altro browser. Cancellare i dati del browser senza una copia della chiave comporta perdita dell'accesso gestionale. Chi possiede la chiave ha gli stessi diritti; non inserirla nei link condivisi. La perdita senza backup richiede intervento amministrativo interno.
+
+## Pubblicazione e aggiornamenti
+
+La versione in produzione è stata caricata manualmente dalla console Cloudflare. Non occorrono build o nuove credenziali per il frontend.
+
+1. Dopo l'autorizzazione a un aggiornamento, utilizzare soltanto la cartella `public/` della versione approvata o il corrispondente ZIP.
+2. Nel progetto Pages esistente selezionare **Create a new deployment**, quindi l'ambiente produzione; caricare gli asset e confermare **Save and Deploy**.
+3. Verificare URL ufficiale, hash degli asset, apertura di un gioco, classifica e richieste API non autorizzate.
+4. Conservare commit, pacchetto e riferimento della distribuzione per un eventuale ripristino.
+
+Non creare un nuovo progetto per aggiornare quello esistente. Non caricare l'intero repository, dizionari o codice server come asset del sito. Gli aggiornamenti del backend seguono la procedura tecnica interna e richiedono autorizzazione separata al deploy.
+
+Documentazione Cloudflare: https://developers.cloudflare.com/pages/get-started/direct-upload/
+
+## Manutenzione e ripristino
+
+Conservare backup privati dei dati e delle chiavi di gestione. Un backup del repository o del frontend non comprende i giochi e i risultati nel database. Prima di un ripristino verificare compatibilità del frontend, backend e versione lessicale; evitare di rieseguire lo schema su dati esistenti. Per ripristinare il frontend, dopo autorizzazione, distribuire il pacchetto dell'ultimo commit approvato e verificare l'URL. Per backend e dati usare la procedura interna del servizio, mantenendo i risultati reali.
+
+La documentazione tecnica interna, le credenziali, i backup dei dati e le evidenze che contengono dati dei giocatori non devono essere inseriti in questo repository pubblico.
+
+## Limiti effettivi
+
+- Nickname senza autenticazione: possibili impersonazioni; divieto di nuovi tentativi per nickname, non per persona.
+- Le anteprime docente sono libere: non è un sistema che impedisce ogni aiuto esterno allo studente.
+- Eliminazione logica: il gioco e i risultati diventano inaccessibili dall'app, ma i record restano fino alla rimozione amministrativa.
+- Una sessione scaduta è conclusa alla prima richiesta successiva; una partita abbandonata senza più richieste non entra in classifica finché non viene chiusa. Senza timer il limite tecnico è 24 ore.
+- Archivio limitato, classifica primi 100 e registro paginato; limiti di richieste possono richiedere un'attesa in caso di uso intenso.
+- Lessici non esaustivi per tutte le derivazioni e non filtrati semanticamente per la scuola: verificare l'anteprima.
 
 ## Dizionari e licenze
 
@@ -41,7 +81,11 @@ Il codice applicativo originale è distribuito GPL-3.0. I file dei lessici mante
 
 Accenti non rimossi. NFC applicato; `é ≠ e`, `ñ ≠ n`, `ß ≠ ss`, umlaut distinti. Lunghezza Unicode in lettere. Maiuscole equivalenti; `ß` visualizzata `ẞ`. Sono escluse grafie con spazi, apostrofi e trattini. Il catalogo automatico conserva 600 combinazioni per lingua con almeno cinque soluzioni; la richiesta automatica è rifiutata se nessuna combinazione raggiunge l'obiettivo. L'obiettivo non tronca il set delle parole ammesse.
 
-## Riproduzione
+## Verifiche e riproduzione
+
+I collaudi precedenti comprendono nove test automatici, API reali nelle cinque lingue e interfacce desktop/mobile. Il collaudo conclusivo usa controlli non distruttivi senza modificare giochi e risultati reali. Non eseguire lo script `tests/live-api.py` come semplice controllo su produzione: lo script del collaudo iniziale crea dati sintetici ed esegue eliminazioni logiche.
+
+Per rigenerare i lessici in un ambiente di sviluppo (Python 3, libhunspell 1.7, Node 24):
 
 ```sh
 python scripts/build-lexicons.py
@@ -49,13 +93,4 @@ node scripts/build-catalogue.mjs
 npm test
 ```
 
-Il frontend si pubblica senza build. Da una macchina con accesso Cloudflare autorizzato, usare Wrangler già configurato per l'account Istituto Janus:
-
-```sh
-wrangler pages project create janus-word-challenge --production-branch main
-wrangler pages deploy public --project-name janus-word-challenge --branch main
-```
-
-Il comando create si esegue soltanto se il progetto non esiste. Non distribuire nella Pages dei giochi precedenti. La funzione Supabase `janus-word-challenge` è distribuita separatamente, includendo `edge.js`, `core.js`, `lexicons/words.js` e `lexicons/catalogue.js`, con `verify_jwt=true`. Usa i secret builtin Supabase, senza generare nuove API key. La chiave anon in `public/config.js` è intenzionalmente pubblica.
-
-Il manuale utente, localizzato, è `public/manuale.html`. Il report finale indica i controlli effettivamente completati e l'eventuale blocco di deploy.
+La rigenerazione non aggiorna da sola la versione pubblicata. Ogni modifica applicativa e ogni nuovo deploy richiedono approvazione.
