@@ -1,0 +1,12 @@
+JWC recovery snapshot — 2026-10-13
+Backend and frozen multilingual lexicons recovered from retained session data.
+Supabase function janus-word-challenge version 2 ACTIVE, JWT verification enabled.
+Project Giochi Janus: tageubqfxkshigrriiyw.
+Private schema jwc_private: games, sessions, rates. Public RPC jwc_dispatch is service-only.
+Live tests passed: five languages, generation, manual preview, 10/20/30/50 scores, duplicates, solutions after finish, Supabase persistence, best score, nickname replay restriction, server timer, teacher ownership, rename and logical deletion.
+Browser tests passed: desktop and mobile, UI localization, word entry, reload resume, final comparison, archive, register, rename and deletion; no JS exceptions.
+Demo game ID: 302c0a71-82cb-45ff-9198-78cfbc18b213 (2 completed attempts, best score 110).
+The complete original local commit is 15a4ba5 on branch jwc-word-challenge in /workspace/giochi-didattici.
+IMPORTANT: This recovery snapshot is not the entire application. Frontend, lexical source licenses, build scripts and tests are still in the disconnected /workspace; preserve that volume. Do not deploy this partial snapshot as the completed app.
+Publication is not complete. Cloudflare API access was denied by the effective runtime policy; the local execution transport subsequently disconnected.
+Pre-existing security finding: public.PercorsoCronologico has RLS disabled; unchanged to preserve existing applications.
