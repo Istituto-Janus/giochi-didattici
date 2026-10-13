@@ -1,0 +1,2 @@
+export const API_URL='https://tageubqfxkshigrriiyw.supabase.co/functions/v1/janus-word-challenge';
+export const API_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhZ2V1YnFmeGtzaGlncnJpaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDE2NTgsImV4cCI6MjA5NTI3NzY1OH0.S3exwqcf5LZCTOUzRo0RqrmfO_S3qwyqKk6PVCoIw44';

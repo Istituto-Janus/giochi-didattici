@@ -1,0 +1,27 @@
+{
+  "it": {
+    "words": 25936,
+    "sha256": "fc82772fad6119ef61205281d853af19959efa13b0f45161f5dc0855f490a492",
+    "source_sha256": "39240c127cdba64d7fbe706e993ad8c65d8a2f5f425889f31e98216d1c46a86a"
+  },
+  "en": {
+    "words": 16995,
+    "sha256": "1e2b1b48450e61bd912f7aa6cc9c12c20a52fae58cdb00325a71e27ea3e1ec85",
+    "source_sha256": "33282bcec8a9287cfaa439c513ff39a2e806bfec058a0aa40b2f0d5541e9408e"
+  },
+  "es": {
+    "words": 38010,
+    "sha256": "1a870d67d7c4f22d53aafadbea57f4becc1724ed0b7eb4f90ed51d2040d48e7f",
+    "source_sha256": "1820bc935dbe841f4b5d36801bc8e8690da77a23b48665ef3899d9e34d082090"
+  },
+  "fr": {
+    "words": 30002,
+    "sha256": "6178f4eab975a10bc8d98adc3e7020006579d529bf8cd3e8a754651dc1e2e371",
+    "source_sha256": "ba6cf6b9520d916c3ae1077d60bbb798dcb19a40b7c30cf83a28fa649dc1ce34"
+  },
+  "de": {
+    "words": 15677,
+    "sha256": "993a801a19b2eb97f7cdb546a0ec5c4e746b8ec2093caf8620006d1a246226ec",
+    "source_sha256": "ebf55ca58d5bace8f3d11d1fbae54388676029c668e76fbf74516d52b828e7fd"
+  }
+}

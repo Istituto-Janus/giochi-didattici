@@ -1,0 +1,1 @@
+{"name":"janus-word-challenge","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","catalogue":"node scripts/build-catalogue.mjs"},"license":"GPL-3.0-only"}
